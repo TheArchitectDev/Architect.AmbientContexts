@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>Architect.AmbientContexts</AssemblyName>
+    <RootNamespace>Architect.AmbientContexts</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- NoWarn: 1573=SummariesOnOnlySomeParams -->
+    <NoWarn>1573</NoWarn>
+    <LangVersion>latest</LangVersion>
+    <!--<Nullable>Enable</Nullable>-->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Version>0.0.1</Version>
+    <Description>
+Provides the basis for implementing the Ambient Context pattern.
+
+The Ambient Context pattern is an Inversion of Control (IoC) pattern that provides code with controlled static access to a dependency.
+
+A good example is System.Transactions.TransactionScope. Any code (such as the database connector) can access the static Transaction.Current, yet outer code in the current execution flow controls it, through TransactionScopes.
+
+By inheriting from AmbientScope, a class can become an ambient scope much like TransactionScope. When code is wrapped in such a scope (with the help of a using statement), any code inside the scope can statically access that ambient scope.
+
+The AmbientScope base class provides fine-grained control over scope nesting (obscuring, combining, or throwing) and supports registration of a ubiquitous default scope.
+    </Description>
+    <Copyright>The Architect</Copyright>
+    <Company>The Architect</Company>
+    <Authors>TheArchitectDev, Timovzl</Authors>
+    <RepositoryUrl>https://github.com/TheArchitectDev/Architect.AmbientContexts</RepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageTags>AmbientContext, AmbientScope, ambient, context, scope, IoC, inversion, control, dependency, dependencies, static, AsyncLocal, ThreadLocal, ThreadStatic</PackageTags>
+    <PackageReleaseNotes>
+    </PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
