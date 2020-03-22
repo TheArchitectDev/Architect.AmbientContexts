@@ -17,66 +17,45 @@ namespace Architect.AmbientContexts
 	/// Optionally, a ubiquitous default scope can be registered, accessible when no other scope is obscuring it.
 	/// </para>
 	/// </summary>
+	/// <typeparam name="TConcreteScope">The inheriting class.</typeparam>
 	public abstract partial class AmbientScope<TConcreteScope> : IDisposable
 		where TConcreteScope : AmbientScope<TConcreteScope>
 	{
+		public override string ToString() => this.GetType().Name;
+
+		/// <summary>
+		/// A default, global root scope that is always present, acting as a ubiquitous bottom layer beneath any regular scopes.
+		/// </summary>
+		protected static TConcreteScope? DefaultScope => DefaultScopeValue;
+		private static TConcreteScope? DefaultScopeValue;
+
 		/// <summary>
 		/// <para>
-		/// Initialize once to use a default, global root scope that is always present.
+		/// The physical parent scope, even if it is being obscured because of the <see cref="AmbientScopeOption"/>.
 		/// </para>
 		/// <para>
-		/// When an instance is assigned to this, it is removed from its position as the current AsyncLocal, and instead becomes the global root scope.
+		/// Null if there is no parent or if the effective parent is the default scope.
 		/// </para>
 		/// </summary>
-		protected static TConcreteScope DefaultScope
-		{
-			get => DefaultScopeValue;
-			set
-			{
-				if (value is null) throw new ArgumentNullException();
-				if (value.ScopeOption == AmbientScopeOption.JoinExisting)
-					throw new ArgumentException($"The default scope must not use {nameof(AmbientScopeOption)}.{AmbientScopeOption.JoinExisting}.");
-
-				if (value.EffectiveParentScope != null || value.PhysicalParentScope != null)
-					throw new InvalidOperationException("The scope has a parent somehow, but the default scope must not have a parent.");
-				if (!ReferenceEquals(value, CurrentAmbientScope.Value))
-					throw new InvalidOperationException("Another ambient scope was created between creation and registration of the default scope.");
-
-				RemoveAmbientScope(value); // Do not keep the default in the AsyncLocal, as it is global rather than local
-
-				var previousInstance = DefaultScopeValue;
-				DefaultScopeValue = value;
-
-				// On the potential previous default, call the custom dispose implementation without invoking the base dispose
-				// The base dispose would remove it from the AsyncLocal, but as a default scope, it was already removed from there
-				previousInstance?.DisposeImplementation();
-			}
-		}
-		private static TConcreteScope DefaultScopeValue;
+		protected TConcreteScope? PhysicalParentScope { get; private set; }
 
 		/// <summary>
 		/// <para>
-		/// The physical parent scope, even if it is being obscured.
-		/// </para>
-		/// <para>
-		/// Null if there is no parent or if the effective parent is the DefaultScope.
-		/// </para>
-		/// </summary>
-		protected TConcreteScope PhysicalParentScope { get; }
-
-		/// <summary>
-		/// <para>
-		/// If this scope uses JoinExisting, this contains the potential parent scope. Note that the effective parent may be the DefaultScope.
+		/// If this scope uses <see cref="AmbientScopeOption.JoinExisting"/>, this contains the parent scope, if there is one. Note that the effective parent may be the default scope.
 		/// </para>
 		/// <para>
 		/// Null otherwise.
 		/// </para>
 		/// </summary>
-		protected TConcreteScope EffectiveParentScope { get; }
+		protected TConcreteScope? EffectiveParentScope { get; private set; }
 
 		protected AmbientScopeOption ScopeOption { get; }
 
-		private int _disposeCount;
+		/// <summary>
+		/// If true, when checking for nesting because <see cref="AmbientScopeOption.NoNesting"/> is specified, the default scope is ignored.
+		/// Defaults to false.
+		/// </summary>
+		protected virtual bool NoNestingIgnoresDefaultScope => false;
 
 		protected AmbientScope(AmbientScopeOption scopeOption)
 		{
@@ -84,24 +63,13 @@ namespace Architect.AmbientContexts
 			if (!Enum.IsDefined(typeof(AmbientScopeOption), scopeOption)) throw new ArgumentException($"Undefined {nameof(AmbientScopeOption)}: {scopeOption}.");
 
 			this.ScopeOption = scopeOption;
-
-			this.PhysicalParentScope = (TConcreteScope)GetAmbientScope();
-
-			if (scopeOption == AmbientScopeOption.NoNesting && (this.PhysicalParentScope != null || DefaultScope != null))
-				throw new InvalidOperationException($"{nameof(AmbientScopeOption)}.{nameof(AmbientScopeOption.NoNesting)} was used, but an outer scope is present.");
-
-			this.EffectiveParentScope = scopeOption == AmbientScopeOption.JoinExisting
-				? this.PhysicalParentScope ?? DefaultScope
-				: null;
-
-			SetAmbientScope(this);
 		}
 
 		public void Dispose() // Must NOT be virtual
 		{
-			// Dispose only once, using interlocked just in case
-			if (Interlocked.CompareExchange(ref this._disposeCount, value: 1, comparand: 0) != 0)
-				throw new InvalidOperationException("Dispose must only be called once."); // Exception is necessary to prevent implementor error related to setting DefaultScope
+			// If we have a physical parent, make sure it is not disposed
+			if (this.State == AmbientScopeState.Active && this.PhysicalParentScope?.State == AmbientScopeState.Disposed)
+				throw new InvalidOperationException("The ambient scope being disposed has a physical parent scope that was disposed before it.");
 
 			try
 			{
@@ -109,12 +77,35 @@ namespace Architect.AmbientContexts
 			}
 			finally
 			{
-				// If we have a parent, make sure it is not disposed
-				if (this.PhysicalParentScope?._disposeCount > 0)
-					throw new InvalidOperationException("The ambient scope being disposed has a physical parent scope that was disposed before it.");
+				this.BaseDisposeImplementation();
+			}
+		}
 
-				// Fill our position as the current ambient scope with our parent (which may be null)
-				ReplaceAmbientScope(this, this.PhysicalParentScope);
+		/// <summary>
+		/// Performs our base dispose logic.
+		/// Skips repeated execution.
+		/// </summary>
+		private void BaseDisposeImplementation()
+		{
+			this.ChangeState(AmbientScopeState.Disposed, out var previousState);
+
+			switch (previousState)
+			{
+				case AmbientScopeState.Disposed:
+					// Avoid repeated disposal
+					return;
+				case AmbientScopeState.New:
+					// Nothing to do
+				case AmbientScopeState.Default:
+					// Unset us as the default scope, if we were it
+					Interlocked.CompareExchange(ref DefaultScopeValue, value: null, comparand: (TConcreteScope)this);
+					break;
+				case AmbientScopeState.Active:
+					// Overwrite with our physical parent (which may be null) our position as the current ambient scope
+					ReplaceAmbientScope(this, this.PhysicalParentScope);
+					break;
+				default:
+					throw new NotImplementedException($"{nameof(this.BaseDisposeImplementation)} is not implemented for state {previousState}.");
 			}
 		}
 
@@ -125,16 +116,82 @@ namespace Architect.AmbientContexts
 
 		/// <summary>
 		/// <para>
+		/// Activates this scope as the ambient scope, pushing it onto the ambient stack. It will be popped from the ambient stack when it is disposed.
+		/// </para>
+		/// <para>
+		/// This method should generally be called at the very end of the subclass' constructor.
+		/// After activation, no constructor may throw, or there is nothing to dispose to undo the activation!
+		/// </para>
+		/// </summary>
+		protected void Activate()
+		{
+			if (this.State != AmbientScopeState.New)
+				throw new InvalidOperationException($"The {this} was not in a valid state to be activated.");
+
+			var physicalParentScope = GetAmbientScope(considerDefaultScope: false);
+
+			var isNested = physicalParentScope != null || // There is a physical parent scope, or
+				(DefaultScope != null && !this.NoNestingIgnoresDefaultScope); // There is a default scope and we care
+
+			if (this.ScopeOption == AmbientScopeOption.NoNesting && isNested)
+				throw new InvalidOperationException($"{nameof(AmbientScopeOption)}.{nameof(AmbientScopeOption.NoNesting)} was specified, but an outer scope is present.");
+
+			this.PhysicalParentScope = physicalParentScope;
+			this.EffectiveParentScope = this.ScopeOption == AmbientScopeOption.JoinExisting
+				? this.PhysicalParentScope ?? DefaultScope
+				: null;
+
+			SetAmbientScope(this);
+
+			this.ChangeState(AmbientScopeState.Active);
+		}
+
+		/// <summary>
+		/// <para>
 		/// Returns the effective root scope from the current scope's perspective, which is either itself or the greatest accessible ancestor.
 		/// </para>
 		/// <para>
-		/// Iteration stops when a scope uses the ForceCreateNew or NoNesting option, or when no further parent exists.
+		/// An ancestor is accessible if it uses <see cref="AmbientScopeOption.JoinExisting"/>.
+		/// See also <see cref="EffectiveParentScope"/>.
 		/// </para>
 		/// </summary>
 		protected TConcreteScope GetEffectiveRootScope()
 		{
 			// Recurse into the effective parent until there is none
 			return this.EffectiveParentScope?.GetEffectiveRootScope() ?? (TConcreteScope)this;
+		}
+
+		/// <summary>
+		/// <para>
+		/// Sets a default, global root scope that is always present, acting as a ubiquitous bottom layer beneath any regular scopes.
+		/// </para>
+		/// <para>
+		/// This method overwrites and disposes the potential previous value.
+		/// </para>
+		/// <para>
+		/// If the default scope is disposed while it is still the default scope, it will remove itself from the position.
+		/// </para>
+		/// </summary>
+		/// <param name="defaultScope">The default scope to register. May be null to unset.</param>
+		protected static void SetDefaultScope(TConcreteScope defaultScope)
+		{
+			if (defaultScope != null)
+			{
+				if (defaultScope.State != AmbientScopeState.New)
+					throw new ArgumentException($"The {defaultScope} was not in a valid state to be made the default scope.");
+
+				if (defaultScope.ScopeOption == AmbientScopeOption.JoinExisting)
+					throw new ArgumentException($"The default scope must not use {nameof(AmbientScopeOption)}.{AmbientScopeOption.JoinExisting}.");
+
+				if (defaultScope.EffectiveParentScope != null || defaultScope.PhysicalParentScope != null)
+					throw new InvalidOperationException("The scope has a parent somehow, but the default scope must not have one.");
+			}
+
+			defaultScope?.ChangeState(AmbientScopeState.Default);
+
+			var previousInstance = Interlocked.Exchange(ref DefaultScopeValue, defaultScope);
+
+			previousInstance?.Dispose();
 		}
 	}
 }

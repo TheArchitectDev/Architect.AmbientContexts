@@ -13,14 +13,14 @@ namespace Architect.AmbientContexts
 		/// <summary>
 		/// Contains the current async execution flow's AmbientScope.
 		/// </summary>
-		private static readonly AsyncLocal<AmbientScope<TConcreteScope>> CurrentAmbientScope = new AsyncLocal<AmbientScope<TConcreteScope>>();
+		private static readonly AsyncLocal<TConcreteScope?> CurrentAmbientScope = new AsyncLocal<TConcreteScope?>();
 
 		/// <summary>
 		/// Makes the given scope the ambient one.
 		/// Throws if it already is.
 		/// </summary>
 		/// <param name="newAmbientScope">The scope that is to be set as the ambient scope. May be null.</param>
-		protected static void SetAmbientScope(AmbientScope<TConcreteScope> newAmbientScope)
+		protected static void SetAmbientScope(AmbientScope<TConcreteScope>? newAmbientScope)
 		{
 			if (newAmbientScope is null)
 			{
@@ -31,7 +31,7 @@ namespace Architect.AmbientContexts
 			if (ReferenceEquals(newAmbientScope, CurrentAmbientScope.Value))
 				throw new InvalidOperationException("The given scope was already the current ambient scope.");
 
-			CurrentAmbientScope.Value = newAmbientScope;
+			CurrentAmbientScope.Value = (TConcreteScope)newAmbientScope;
 		}
 
 		/// <summary>
@@ -60,7 +60,7 @@ namespace Architect.AmbientContexts
 			System.Diagnostics.Debug.Assert(ambientScope != null);
 			System.Diagnostics.Debug.Assert(ambientScope == CurrentAmbientScope.Value);
 
-			CurrentAmbientScope.Value = null;
+			ReplaceAmbientScope(ambientScope, ambientScope.PhysicalParentScope);
 		}
 
 		/// <summary>
@@ -73,7 +73,7 @@ namespace Architect.AmbientContexts
 		/// </summary>
 		/// <param name="currentScope">The scope that is currently the ambient scope. Must be correct. May be null.</param>
 		/// <param name="newAmbientScope">The scope that is to be set as the ambient scope. May be null.</param>
-		protected static void ReplaceAmbientScope(AmbientScope<TConcreteScope> currentScope, AmbientScope<TConcreteScope> newAmbientScope)
+		protected static void ReplaceAmbientScope(AmbientScope<TConcreteScope> currentScope, AmbientScope<TConcreteScope>? newAmbientScope)
 		{
 			if (!ReferenceEquals(currentScope, CurrentAmbientScope.Value))
 				throw new InvalidOperationException("The supposed current scope was not the current ambient scope. Always dispose in reverse order of creation.");
@@ -82,11 +82,12 @@ namespace Architect.AmbientContexts
 		}
 
 		/// <summary>
-		/// Get the current ambient scope or null if no ambient scope has been set up.
+		/// Returns the current ambient scope, or null if no ambient scope has been set up.
 		/// </summary>
-		protected static AmbientScope<TConcreteScope> GetAmbientScope()
+		/// <param name="considerDefaultScope">If true, the default scope may be returned. If false, if only the default scope is visible, null is returned.</param>
+		protected static TConcreteScope? GetAmbientScope(bool considerDefaultScope = true)
 		{
-			return CurrentAmbientScope.Value ?? DefaultScope;
+			return CurrentAmbientScope.Value ?? (considerDefaultScope ? DefaultScope : null);
 		}
 	}
 }
