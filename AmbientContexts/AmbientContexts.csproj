@@ -1,21 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>Architect.AmbientContexts</AssemblyName>
     <RootNamespace>Architect.AmbientContexts</RootNamespace>
   </PropertyGroup>
 
   <PropertyGroup>
     <!-- NoWarn: 1573=SummariesOnOnlySomeParams -->
-    <NoWarn>1573</NoWarn>
+    <!-- NoWarn: 1591=MissingXmlComments -->
+    <NoWarn>1573;1591</NoWarn>
     <LangVersion>latest</LangVersion>
-    <!--<Nullable>Enable</Nullable>-->
+    <Nullable>Enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>0.0.1</Version>
+    <Version>1.0.0-RC1</Version>
     <ReleaseNotes></ReleaseNotes>
     <Description>
 Provides the basis for implementing the Ambient Context pattern.
