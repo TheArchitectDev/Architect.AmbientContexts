@@ -173,7 +173,7 @@ namespace Architect.AmbientContexts
 		/// </para>
 		/// </summary>
 		/// <param name="defaultScope">The default scope to register. May be null to unset.</param>
-		protected static void SetDefaultScope(TConcreteScope defaultScope)
+		protected static void SetDefaultScope(TConcreteScope? defaultScope)
 		{
 			if (defaultScope != null)
 			{
