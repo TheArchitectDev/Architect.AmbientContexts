@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>1.0.0-RC1</Version>
+    <Version>1.0.0-RC2</Version>
     <ReleaseNotes></ReleaseNotes>
     <Description>
 Provides the basis for implementing the Ambient Context pattern.
