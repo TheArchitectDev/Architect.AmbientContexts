@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29709.97
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AmbientContexts", "AmbientContexts\AmbientContexts.csproj", "{5F976C9D-5663-42CE-9E85-A748556A237A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AmbientContexts", "AmbientContexts\AmbientContexts.csproj", "{5F976C9D-5663-42CE-9E85-A748556A237A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AmbientContexts.Tests", "AmbientContexts.Tests\AmbientContexts.Tests.csproj", "{FCD7E9B1-05A5-43A3-89E6-693AE37D85ED}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AmbientContexts.Tests", "AmbientContexts.Tests\AmbientContexts.Tests.csproj", "{FCD7E9B1-05A5-43A3-89E6-693AE37D85ED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AmbientContexts.Example", "AmbientContexts.Example\AmbientContexts.Example.csproj", "{B429D8C3-1510-4626-BD72-2C1E1116D1E5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{FCD7E9B1-05A5-43A3-89E6-693AE37D85ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FCD7E9B1-05A5-43A3-89E6-693AE37D85ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FCD7E9B1-05A5-43A3-89E6-693AE37D85ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B429D8C3-1510-4626-BD72-2C1E1116D1E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B429D8C3-1510-4626-BD72-2C1E1116D1E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B429D8C3-1510-4626-BD72-2C1E1116D1E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B429D8C3-1510-4626-BD72-2C1E1116D1E5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

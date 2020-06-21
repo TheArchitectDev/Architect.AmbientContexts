@@ -36,6 +36,9 @@ namespace Architect.AmbientContexts
 		/// <para>
 		/// Null if there is no parent or if the effective parent is the default scope.
 		/// </para>
+		/// <para>
+		/// Note that this property returns null if the scope has not been activated.
+		/// </para>
 		/// </summary>
 		protected TConcreteScope? PhysicalParentScope { get; private set; }
 
@@ -45,6 +48,9 @@ namespace Architect.AmbientContexts
 		/// </para>
 		/// <para>
 		/// Null otherwise.
+		/// </para>
+		/// <para>
+		/// Note that this property returns null if the scope has not been activated.
 		/// </para>
 		/// </summary>
 		protected TConcreteScope? EffectiveParentScope { get; private set; }
@@ -101,8 +107,7 @@ namespace Architect.AmbientContexts
 					Interlocked.CompareExchange(ref DefaultScopeValue, value: null, comparand: (TConcreteScope)this);
 					break;
 				case AmbientScopeState.Active:
-					// Overwrite with our physical parent (which may be null) our position as the current ambient scope
-					ReplaceAmbientScope(this, this.PhysicalParentScope);
+					this.DeactivateCore();
 					break;
 				default:
 					throw new NotImplementedException($"{nameof(this.BaseDisposeImplementation)} is not implemented for state {previousState}.");
@@ -116,7 +121,7 @@ namespace Architect.AmbientContexts
 
 		/// <summary>
 		/// <para>
-		/// Activates this scope as the ambient scope, pushing it onto the ambient stack. It will be popped from the ambient stack when it is disposed.
+		/// Activates this scope as the ambient scope, pushing it onto the ambient stack. It will be popped from the ambient stack when it is deactivated, such as on disposal.
 		/// </para>
 		/// <para>
 		/// This method should generally be called at the very end of the subclass' constructor.
@@ -144,6 +149,37 @@ namespace Architect.AmbientContexts
 			SetAmbientScope(this);
 
 			this.ChangeState(AmbientScopeState.Active);
+		}
+
+		/// <summary>
+		/// <para>
+		/// Deactivates this scope as the ambient scope, popping it off the ambient stack.
+		/// </para>
+		/// <para>
+		/// Throws if the scope is not active.
+		/// </para>
+		/// </summary>
+		protected void Deactivate()
+		{
+			if (!this.TryChangeState(newState: AmbientScopeState.New, expectedCurrentState: AmbientScopeState.Active))
+				throw new InvalidOperationException($"The {this} was not in a valid state to be deactivated.");
+
+			this.DeactivateCore();
+		}
+
+		/// <summary>
+		/// Deactivates this scope as the ambient scope, popping it off the ambient stack.
+		/// Checks only that the state is no longer active, as it should have been atomically updated by the caller.
+		/// </summary>
+		private void DeactivateCore()
+		{
+			if (this.State == AmbientScopeState.Active) throw new Exception("Update the state before invoking this method.");
+
+			// Overwrite with our physical parent (which may be null) our position as the current ambient scope
+			ReplaceAmbientScope(this, this.PhysicalParentScope);
+
+			this.PhysicalParentScope = null;
+			this.EffectiveParentScope = null;
 		}
 
 		/// <summary>

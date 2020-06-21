@@ -66,6 +66,7 @@ namespace Architect.AmbientContexts.Tests
 			}
 
 			public new void Activate() => base.Activate();
+			public new void Deactivate() => base.Deactivate();
 
 			public static ManuallyActivatedScope Current => GetAmbientScope();
 			public static ManuallyActivatedScope CurrentNondefault => GetAmbientScope(considerDefaultScope: false);
