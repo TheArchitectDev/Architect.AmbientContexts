@@ -73,33 +73,40 @@ namespace Architect.AmbientContexts
 
 		public void Dispose() // Must NOT be virtual
 		{
-			// If we have a physical parent, make sure it is not disposed
-			if (this.State == AmbientScopeState.Active && this.PhysicalParentScope?.State == AmbientScopeState.Disposed)
-				throw new InvalidOperationException("The ambient scope being disposed has a physical parent scope that was disposed before it.");
+			// Perform our primary disposal immediately
+			var isDisposing = this.BaseDisposeImplementation();
+
+			if (!isDisposing) return;
 
 			try
 			{
+				// Let the subclass perform its disposal
 				this.DisposeImplementation();
 			}
 			finally
 			{
-				this.BaseDisposeImplementation();
+				// Finish up
+				this.UnsetParent();
 			}
 		}
 
 		/// <summary>
 		/// Performs our base dispose logic.
-		/// Skips repeated execution.
+		/// Returns whether this class is being disposed for the first time and dispose logic was performed.
 		/// </summary>
-		private void BaseDisposeImplementation()
+		private protected bool BaseDisposeImplementation()
 		{
+			// If we have a physical parent, make sure it is not disposed
+			if (this.State == AmbientScopeState.Active && this.PhysicalParentScope?.State == AmbientScopeState.Disposed)
+				throw new InvalidOperationException("The ambient scope being disposed has a physical parent scope that was disposed before it.");
+
 			this.ChangeState(AmbientScopeState.Disposed, out var previousState);
 
 			switch (previousState)
 			{
 				case AmbientScopeState.Disposed:
 					// Avoid repeated disposal
-					return;
+					return false;
 				case AmbientScopeState.New:
 					// Nothing to do
 				case AmbientScopeState.Default:
@@ -107,15 +114,25 @@ namespace Architect.AmbientContexts
 					Interlocked.CompareExchange(ref DefaultScopeValue, value: null, comparand: (TConcreteScope)this);
 					break;
 				case AmbientScopeState.Active:
-					this.DeactivateCore();
+					this.DeactivateCore(unsetParent: false);
 					break;
 				default:
 					throw new NotImplementedException($"{nameof(this.BaseDisposeImplementation)} is not implemented for state {previousState}.");
 			}
+
+			return true;
+		}
+
+		private protected void UnsetParent()
+		{
+			this.PhysicalParentScope = null;
+			this.EffectiveParentScope = null;
 		}
 
 		/// <summary>
+		/// <para>
 		/// Allows custom dipose logic to be implemented without the chance of disrupting the base dispose logic.
+		/// </para>
 		/// </summary>
 		protected abstract void DisposeImplementation();
 
@@ -171,15 +188,14 @@ namespace Architect.AmbientContexts
 		/// Deactivates this scope as the ambient scope, popping it off the ambient stack.
 		/// Checks only that the state is no longer active, as it should have been atomically updated by the caller.
 		/// </summary>
-		private void DeactivateCore()
+		private void DeactivateCore(bool unsetParent = true)
 		{
 			if (this.State == AmbientScopeState.Active) throw new Exception("Update the state before invoking this method.");
 
 			// Overwrite with our physical parent (which may be null) our position as the current ambient scope
 			ReplaceAmbientScope(this, this.PhysicalParentScope);
 
-			this.PhysicalParentScope = null;
-			this.EffectiveParentScope = null;
+			if (unsetParent) this.UnsetParent();
 		}
 
 		/// <summary>

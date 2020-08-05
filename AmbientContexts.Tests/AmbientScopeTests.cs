@@ -77,7 +77,7 @@ namespace Architect.AmbientContexts.Tests
 		public void Dispose_FromActiveWithUnderlyingScope_ShouldRevealExpectedScope()
 		{
 			using var scope1 = new TestScope(1, AmbientScopeOption.JoinExisting);
-			using var scope2 = new TestScope(1, AmbientScopeOption.JoinExisting);
+			using var scope2 = new TestScope(2, AmbientScopeOption.JoinExisting);
 			scope2.Dispose();
 
 			Assert.Equal(scope1, TestScope.Current);
@@ -90,6 +90,79 @@ namespace Architect.AmbientContexts.Tests
 			scope.Dispose();
 
 			Assert.Equal(TestScope.DefaultScopeConstant, TestScope.Current);
+		}
+
+		[Fact]
+		public void Dispose_Regularly_ShouldInvokeDisposeImplementation()
+		{
+			var wasInvoked = false;
+
+			using var scope = new TestScope(1, AmbientScopeOption.JoinExisting)
+			{
+				OnDispose = () => wasInvoked = true
+			};
+
+			scope.Dispose();
+
+			Assert.True(wasInvoked);
+		}
+
+		[Fact]
+		public void Dispose_SecondTime_ShouldNotInvokeDisposeImplementation()
+		{
+			var wasInvoked = false;
+
+			using var scope = new TestScope(1, AmbientScopeOption.JoinExisting)
+			{
+				OnDispose = () => wasInvoked = true
+			};
+
+			scope.Dispose();
+			wasInvoked = false;
+			scope.Dispose();
+
+			Assert.False(wasInvoked);
+		}
+
+		[Fact]
+		public void Dispose_WithExceptionInSubclassDispose_ShouldStillPopScopeOffAmbientStack()
+		{
+			using var scope = new TestScope(1, AmbientScopeOption.JoinExisting)
+			{
+				OnDispose = () => throw new TimeoutException(),
+			};
+
+			try
+			{
+				scope.Dispose();
+			}
+			catch (TimeoutException)
+			{
+				// Ignore our own exception
+			}
+
+			Assert.Equal(TestScope.DefaultScopeConstant, TestScope.Current);
+		}
+
+		[Fact]
+		public void Dispose_WithExceptionInSubclassDispose_ShouldStillUnsetParent()
+		{
+			using var scope = new TestScope(1, AmbientScopeOption.JoinExisting)
+			{
+				OnDispose = () => throw new TimeoutException(),
+			};
+
+			try
+			{
+				scope.Dispose();
+			}
+			catch (TimeoutException)
+			{
+				// Ignore our own exception
+			}
+
+			Assert.Null(scope.PhysicalParentScope);
+			Assert.Null(scope.EffectiveParentScope);
 		}
 
 		[Fact]
