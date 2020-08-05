@@ -12,7 +12,8 @@ namespace Architect.AmbientContexts
 	/// The mechanism optimizes accessiblity (through a static property) at the cost of transparency, making it suitable for obvious, ubiquitous, rarely-changing dependencies.
 	/// </para>
 	/// <para>
-	/// A default scope that uses <see cref="DateTime.Now"/> is registered by default. A different default can be registered on startup through <see cref="ClockScopeExtensions.UseClockScope(IServiceProvider, Func{DateTime})"/>.
+	/// A default scope that uses <see cref="DateTime.Now"/> is registered by default.
+	/// A different default can be registered on startup through <see cref="ClockScopeExtensions.UseClockScope(IServiceProvider, Func{DateTime})"/>.
 	/// </para>
 	/// <para>
 	/// Outer code may construct a custom <see cref="ClockScope"/> inside a using statement, causing any code within the using block to see that instance.
@@ -41,6 +42,7 @@ namespace Architect.AmbientContexts
 		/// <summary>
 		/// Establishes the given clock as the ambient one until the scope is disposed.
 		/// </summary>
+		/// <param name="nowSource">The clock to register, which produces the equivalent of <see cref="DateTime.Now"/>, i.e. the local time.</param>
 		public ClockScope(Func<DateTime> nowSource)
 			: this(nowSource, AmbientScopeOption.ForceCreateNew)
 		{
@@ -65,7 +67,7 @@ namespace Architect.AmbientContexts
 		/// <summary>
 		/// Sets the ubiquitous default scope, overwriting and disposing the previous one if necessary.
 		/// </summary>
-		/// <param name="nowSource">The clock to register. May be null to unregister.</param>
+		/// <param name="nowSource">The clock to register, which produces the equivalent of <see cref="DateTime.Now"/>, i.e. the local time. May be null to unregister.</param>
 		internal static void SetDefaultValue(Func<DateTime> nowSource)
 		{
 			var newDefaultScope = nowSource is null
