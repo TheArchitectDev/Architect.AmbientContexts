@@ -86,7 +86,7 @@ namespace Architect.AmbientContexts
 			var valueTask = this.DisposeAsyncImplementation();
 
 			if (!valueTask.IsCompleted)
-				valueTask.GetAwaiter().GetResult();
+				valueTask.AsTask().GetAwaiter().GetResult(); // GetAwaiter() should not be performed on ValueTasks (https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/)
 		}
 
 		/// <summary>
