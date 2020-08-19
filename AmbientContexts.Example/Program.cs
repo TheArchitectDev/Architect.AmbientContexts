@@ -24,14 +24,14 @@ namespace Architect.AmbientContexts.Example
 			Console.WriteLine();
 
 			{
-				var now = ClockScope.Current.Now;
+				var now = Clock.Now;
 				Console.WriteLine($"The clock tells {now:yyyy-MM-dd HH:mm:ss}. We determined this without any injected dependencies.");
 				Console.WriteLine();
 			}
 
 			using (new ClockScope(() => new DateTime(2000, 01, 01)))
 			{
-				var now = ClockScope.Current.Now;
+				var now = Clock.Now;
 				Console.WriteLine($"The clock tells {now:yyyy-MM-dd HH:mm:ss}. Even without dependency injection, we were in control.");
 				Console.WriteLine();
 			}
@@ -39,6 +39,7 @@ namespace Architect.AmbientContexts.Example
 
 		/// <summary>
 		/// Demonstrates use of the custom <see cref="LogScope"/> class implemented for this example.
+		/// This example, including the <see cref="LogScope"/> class, is intended to demonstrate how you can create and use your own type that uses the Ambient Context pattern.
 		/// </summary>
 		private static void DemonstrateLogScope()
 		{
@@ -47,6 +48,7 @@ namespace Architect.AmbientContexts.Example
 
 			try
 			{
+				// For demononstration purposes, this will throw an exception, which we catch
 				LogScope.Current.WriteEntry("ERROR: How did we log when no LogScope was registered?");
 			}
 			catch (NullReferenceException)

@@ -30,12 +30,12 @@ namespace Architect.AmbientContexts
 		/// Returns the currently accessible <see cref="ClockScope"/>.
 		/// The scope is configurable from the outside, such as from startup.
 		/// </summary>
-		public static ClockScope Current => GetAmbientScope() ?? throw new InvalidOperationException(
+		internal static ClockScope Current => GetAmbientScope() ?? throw new InvalidOperationException(
 			$"{nameof(ClockScope)} was not configured. Call {nameof(ClockScopeExtensions)}.{nameof(ClockScopeExtensions.UseClockScope)} on startup.");
 
-		public DateTime Now => this.NowSource();
-		public DateTime Today => this.Now.Date;
-		public DateTime UtcNow => this.Now.ToUniversalTime();
+		internal DateTime Now => this.NowSource();
+		internal DateTime Today => this.Now.Date;
+		internal DateTime UtcNow => this.Now.ToUniversalTime();
 
 		private Func<DateTime> NowSource { get; }
 
