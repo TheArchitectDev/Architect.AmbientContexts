@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -111,6 +112,68 @@ namespace Architect.AmbientContexts.Tests
 
 			Assert.Null(scope.PhysicalParentScope);
 			Assert.Null(scope.EffectiveParentScope);
+		}
+
+		[Fact]
+		public Task ConstructAndDispose_WithLifetimeOfTwoParallelUnitTestClasses_ShouldNotInterfereWithEachOther()
+		{
+			var tasks = new ConcurrentQueue<Task>();
+
+			Parallel.For(0, 20, i =>
+			{
+				tasks.Enqueue(PerformCore(useNumberOne: i % 2 == 0));
+			});
+
+			return Task.WhenAll(tasks);
+
+			// Local function that performs the core of the test
+			static async Task PerformCore(bool useNumberOne)
+			{
+				if (useNumberOne)
+				{
+					await using var testInstance = new TestClass1();
+					await testInstance.PerformAssertionAsync();
+				}
+				else
+				{
+					await using var testInstance = new TestClass2();
+					await testInstance.PerformAssertionAsync();
+				}
+			}
+		}
+
+		private sealed class TestClass1 : IAsyncDisposable
+		{
+			private TestScope Scope { get; } = new TestScope(index: 1, AmbientScopeOption.ForceCreateNew);
+
+			public ValueTask DisposeAsync()
+			{
+				return this.Scope.DisposeAsync();
+			}
+
+			public async Task PerformAssertionAsync()
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(1));
+				var result = TestScope.Current.Index;
+				Assert.Equal(1, result);
+			}
+		}
+
+		private sealed class TestClass2 : IAsyncDisposable
+		{
+			private TestScope Scope { get; } = new TestScope(index: 2, AmbientScopeOption.ForceCreateNew);
+
+			public ValueTask DisposeAsync()
+			{
+				return this.Scope.DisposeAsync();
+			}
+
+			public async Task PerformAssertionAsync()
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(1));
+				var result = TestScope.Current.Index;
+				Assert.Equal(2, result);
+			}
 		}
 	}
 }
