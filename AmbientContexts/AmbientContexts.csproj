@@ -42,7 +42,7 @@ https://github.com/TheArchitectDev/Architect.AmbientContexts
     <RepositoryUrl>https://github.com/TheArchitectDev/Architect.AmbientContexts</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageTags>AmbientContext, AmbientScope, ambient, context, scope, IoC, inversion, control, dependency, dependencies, static, AsyncLocal, ThreadLocal, ThreadStatic</PackageTags>
+    <PackageTags>AmbientContext, AmbientScope, ambient, context, scope, IoC, inversion, control, dependency, dependencies, static, AsyncLocal, ThreadLocal, ThreadStatic, clock, ClockScope</PackageTags>
     <PackageReleaseNotes>
     </PackageReleaseNotes>
   </PropertyGroup>
