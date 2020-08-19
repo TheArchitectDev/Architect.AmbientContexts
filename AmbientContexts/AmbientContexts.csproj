@@ -33,6 +33,8 @@ The AmbientScope base class provides fine-grained control over scope nesting (by
 The implementation honors logical execution flows and is async-safe.
 
 This package also includes the ClockScope, an Ambient Context implementation for accessing the clock.
+
+https://github.com/TheArchitectDev/Architect.AmbientContexts
     </Description>
     <Copyright>The Architect</Copyright>
     <Company>The Architect</Company>
