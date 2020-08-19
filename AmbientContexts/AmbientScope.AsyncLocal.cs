@@ -76,7 +76,7 @@ namespace Architect.AmbientContexts
 		protected static void ReplaceAmbientScope(AmbientScope<TConcreteScope> currentScope, AmbientScope<TConcreteScope>? newAmbientScope)
 		{
 			if (!ReferenceEquals(currentScope, CurrentAmbientScope.Value))
-				throw new InvalidOperationException("The supposed current scope was not the current ambient scope. Always dispose in reverse order of creation.");
+				throw new InvalidOperationException("The supposed current scope was not the current ambient scope. Always dispose or deactivate in reverse order of creation.");
 
 			SetAmbientScope(newAmbientScope);
 		}

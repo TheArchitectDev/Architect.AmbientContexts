@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -88,6 +89,64 @@ namespace Architect.AmbientContexts.Tests
 						Assert.Equal(index, TestScope.Current.Index);
 					}
 				});
+			}
+		}
+
+		[Fact]
+		public Task ConstructAndDispose_WithLifetimeOfTwoParallelUnitTestClasses_ShouldNotInterfereWithEachOther()
+		{
+			var tasks = new ConcurrentQueue<Task>();
+
+			Parallel.For(0, 20, i =>
+			{
+				if (i % 2 == 0)
+				{
+					using var testInstance = new TestClass1();
+					tasks.Enqueue(testInstance.PerformAssertionAsync());
+				}
+				else
+				{
+					using var testInstance = new TestClass2();
+					tasks.Enqueue(testInstance.PerformAssertionAsync());
+				}
+			});
+
+			return Task.WhenAll(tasks);
+		}
+
+		private sealed class TestClass1 : IDisposable
+		{
+			private static readonly DateTime FixedTime = new DateTime(0001, 01, 01, 12, 00, 00, DateTimeKind.Local);
+			private ClockScope Scope { get; } = new ClockScope(() => FixedTime);
+
+			public void Dispose()
+			{
+				this.Scope.Dispose();
+			}
+
+			public async Task PerformAssertionAsync()
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(1));
+				var now = Clock.Now;
+				Assert.Equal(FixedTime, now);
+			}
+		}
+
+		private sealed class TestClass2 : IDisposable
+		{
+			private static readonly DateTime FixedTime = new DateTime(0002, 01, 01, 12, 00, 00, DateTimeKind.Local);
+			private ClockScope Scope { get; } = new ClockScope(() => FixedTime);
+
+			public void Dispose()
+			{
+				this.Scope.Dispose();
+			}
+
+			public async Task PerformAssertionAsync()
+			{
+				await Task.Delay(TimeSpan.FromMilliseconds(1));
+				var now = Clock.Now;
+				Assert.Equal(FixedTime, now);
 			}
 		}
 	}

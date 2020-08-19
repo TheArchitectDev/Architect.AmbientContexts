@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyName>Architect.AmbientContexts.Example</AssemblyName>
+    <RootNamespace>Architect.AmbientContexts.Example</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AmbientContexts\AmbientContexts.csproj" />
+  </ItemGroup>
+
+</Project>
