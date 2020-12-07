@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>1.0.0-RC6</Version>
+    <VersionPrefix>1.0.0</VersionPrefix>
     <PackageReleaseNotes></PackageReleaseNotes>
     <Description>
 Provides the basis for implementing the Ambient Context pattern, as well as a Clock implementation based on it.
