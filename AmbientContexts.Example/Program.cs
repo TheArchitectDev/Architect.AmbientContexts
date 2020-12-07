@@ -48,7 +48,7 @@ namespace Architect.AmbientContexts.Example
 
 			try
 			{
-				// For demononstration purposes, this will throw an exception, which we catch
+				// For demonstration purposes: this will throw a NullReferenceException, which we catch
 				LogScope.Current.WriteEntry("ERROR: How did we log when no LogScope was registered?");
 			}
 			catch (NullReferenceException)
