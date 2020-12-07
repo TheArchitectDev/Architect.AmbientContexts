@@ -113,14 +113,16 @@ namespace Architect.AmbientContexts.Tests.Time
 		[Fact]
 		public void UtcNow_WithCustomScope_ShouldMatchNow()
 		{
-			var expectedResult = new DateTime(2000, 01, 01, 12, 00, 00, DateTimeKind.Local).ToUniversalTime();
+			var localDateTime = new DateTime(2000, 01, 01, 12, 00, 00, DateTimeKind.Local);
+			var utcOffset = TimeZoneInfo.Local.GetUtcOffset(localDateTime);
+			var expectedResult = localDateTime.ToUniversalTime();
 
-			using var scope = new ClockScope(() => new DateTime(2000, 01, 01, 12, 00, 00, DateTimeKind.Local));
+			using var scope = new ClockScope(() => localDateTime);
 
 			var now = ClockScope.Current.Now;
 			var utcNow = ClockScope.Current.UtcNow;
 
-			var offset = utcNow.AddHours(1) - now;
+			var offset = utcNow.Add(utcOffset) - now;
 
 			Assert.Equal(TimeSpan.Zero, offset);
 		}
