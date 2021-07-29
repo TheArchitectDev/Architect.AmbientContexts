@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading;
+using Architect.AmbientContexts.Defaults;
+using Microsoft.Extensions.Hosting;
 
 namespace Architect.AmbientContexts
 {
@@ -18,15 +20,23 @@ namespace Architect.AmbientContexts
 	/// </para>
 	/// </summary>
 	/// <typeparam name="TConcreteScope">The inheriting class.</typeparam>
-	public abstract partial class AmbientScope<TConcreteScope> : IDisposable
+	public abstract partial class AmbientScope<TConcreteScope> : AmbientScope
 		where TConcreteScope : AmbientScope<TConcreteScope>
 	{
 		public override string ToString() => this.GetType().Name;
 
 		/// <summary>
-		/// A default, global root scope that is always present, acting as a ubiquitous bottom layer beneath any regular scopes.
+		/// <para>
+		/// A default scope that is always present, acting as a ubiquitous bottom layer beneath any regular scopes.
+		/// </para>
+		/// <para>
+		/// If the current call chain originates from any dependency inside an <see cref="IHost"/>, and a default scope was registered in its DI container, that is returned.
+		/// Otherwise, the static default scope is returned.
+		/// </para>
 		/// </summary>
-		protected static TConcreteScope? DefaultScope => DefaultScopeValue;
+		protected static TConcreteScope? DefaultScope =>
+			DefaultScopeContext.Current?.GetDefaultScope<TConcreteScope>() ?? // Prefer a context-associated default
+			DefaultScopeValue; // Fall back to the global default
 		private static TConcreteScope? DefaultScopeValue;
 
 		/// <summary>
@@ -71,7 +81,7 @@ namespace Architect.AmbientContexts
 			this.ScopeOption = scopeOption;
 		}
 
-		public void Dispose() // Must NOT be virtual
+		public sealed override void Dispose() // Must NOT be virtual
 		{
 			// Perform our primary disposal immediately
 			var isDisposing = this.BaseDisposeImplementation();
@@ -228,22 +238,43 @@ namespace Architect.AmbientContexts
 		protected static void SetDefaultScope(TConcreteScope? defaultScope)
 		{
 			if (defaultScope != null)
-			{
-				if (defaultScope.State != AmbientScopeState.New)
-					throw new ArgumentException($"The {defaultScope} was not in a valid state to be made the default scope.");
-
-				if (defaultScope.ScopeOption == AmbientScopeOption.JoinExisting)
-					throw new ArgumentException($"The default scope must not use {nameof(AmbientScopeOption)}.{AmbientScopeOption.JoinExisting}.");
-
-				if (defaultScope.EffectiveParentScope != null || defaultScope.PhysicalParentScope != null)
-					throw new InvalidOperationException("The scope has a parent somehow, but the default scope must not have one.");
-			}
-
-			defaultScope?.ChangeState(AmbientScopeState.Default);
+				defaultScope.ConvertToDefaultScope();
 
 			var previousInstance = Interlocked.Exchange(ref DefaultScopeValue, defaultScope);
 
 			previousInstance?.Dispose();
 		}
+
+		/// <summary>
+		/// Moves the current scope into <see cref="AmbientScopeState.Default"/>, throwing if it is unsuitable.
+		/// </summary>
+		internal void ConvertToDefaultScope()
+		{
+			if (this.State != AmbientScopeState.New)
+				throw new ArgumentException($"The {this} was not in a valid state to be made the default scope.");
+
+			if (this.ScopeOption == AmbientScopeOption.JoinExisting)
+				throw new ArgumentException($"The default scope must not use {nameof(AmbientScopeOption)}.{AmbientScopeOption.JoinExisting}.");
+
+			if (this.EffectiveParentScope != null || this.PhysicalParentScope != null)
+				throw new InvalidOperationException("The scope has a parent somehow, but the default scope must not have one.");
+
+			this.ChangeState(AmbientScopeState.Default);
+		}
+	}
+
+	/// <summary>
+	/// The non-generic base class for any <see cref="AmbientScope{TConcreteScope}"/>.
+	/// </summary>
+	public abstract class AmbientScope : IDisposable
+	{
+		/// <summary>
+		/// Helps prevents inheritance from anything other than <see cref="AmbientScope{TConcreteScope}"/>.
+		/// </summary>
+		private protected AmbientScope()
+		{
+		}
+
+		public abstract void Dispose();
 	}
 }
