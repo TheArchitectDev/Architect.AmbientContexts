@@ -18,7 +18,7 @@ namespace Architect.AmbientContexts
 	/// </para>
 	/// </summary>
 	/// <typeparam name="TConcreteScope">The inheriting class.</typeparam>
-	public abstract partial class AmbientScope<TConcreteScope> : IDisposable
+	public abstract partial class AmbientScope<TConcreteScope> : AmbientScope
 		where TConcreteScope : AmbientScope<TConcreteScope>
 	{
 		public override string ToString() => this.GetType().Name;
@@ -71,7 +71,7 @@ namespace Architect.AmbientContexts
 			this.ScopeOption = scopeOption;
 		}
 
-		public void Dispose() // Must NOT be virtual
+		public sealed override void Dispose() // Must NOT be virtual
 		{
 			// Perform our primary disposal immediately
 			var isDisposing = this.BaseDisposeImplementation();
@@ -245,5 +245,20 @@ namespace Architect.AmbientContexts
 
 			previousInstance?.Dispose();
 		}
+	}
+
+	/// <summary>
+	/// The non-generic base class for any <see cref="AmbientScope{TConcreteScope}"/>.
+	/// </summary>
+	public abstract class AmbientScope : IDisposable
+	{
+		/// <summary>
+		/// Helps prevent inheritance by anything other than <see cref="AmbientScope{TConcreteScope}"/>.
+		/// </summary>
+		private protected AmbientScope()
+		{
+		}
+
+		public abstract void Dispose();
 	}
 }

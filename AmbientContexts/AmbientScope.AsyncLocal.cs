@@ -13,7 +13,9 @@ namespace Architect.AmbientContexts
 		/// <summary>
 		/// Contains the current async execution flow's AmbientScope.
 		/// </summary>
-		private static readonly AsyncLocal<TConcreteScope?> CurrentAmbientScope = new AsyncLocal<TConcreteScope?>();
+		private static AsyncLocal<TConcreteScope?> CurrentAmbientScope { get; } = new AsyncLocal<TConcreteScope?>();
+
+		private static bool WasCurrentScopeEverAssigned { get; set; }
 
 		/// <summary>
 		/// Makes the given scope the ambient one.
@@ -22,6 +24,8 @@ namespace Architect.AmbientContexts
 		/// <param name="newAmbientScope">The scope that is to be set as the ambient scope. May be null.</param>
 		protected static void SetAmbientScope(AmbientScope<TConcreteScope>? newAmbientScope)
 		{
+			WasCurrentScopeEverAssigned = true;
+
 			if (newAmbientScope is null)
 			{
 				CurrentAmbientScope.Value = null;
@@ -87,7 +91,12 @@ namespace Architect.AmbientContexts
 		/// <param name="considerDefaultScope">If true, the default scope may be returned. If false, if only the default scope is visible, null is returned.</param>
 		protected static TConcreteScope? GetAmbientScope(bool considerDefaultScope = true)
 		{
-			return CurrentAmbientScope.Value ?? (considerDefaultScope ? DefaultScope : null);
+			var result = considerDefaultScope ? DefaultScope : null;
+
+			// Use of AsyncLocal optimized away as long as it has not been touched
+			if (WasCurrentScopeEverAssigned) result = CurrentAmbientScope.Value ?? result;
+
+			return result;
 		}
 	}
 }
