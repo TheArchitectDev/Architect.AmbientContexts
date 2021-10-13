@@ -94,27 +94,6 @@ namespace Architect.AmbientContexts.Tests
 		}
 
 		[Fact]
-		public async Task DisposeAsync_WithExceptionInSubclassDispose_ShouldStillUnsetParent()
-		{
-			using var scope = new TestScope(1, AmbientScopeOption.JoinExisting)
-			{
-				OnDisposeAsync = () => throw new TimeoutException(),
-			};
-
-			try
-			{
-				await scope.DisposeAsync();
-			}
-			catch (TimeoutException)
-			{
-				// Ignore our own exception
-			}
-
-			Assert.Null(scope.PhysicalParentScope);
-			Assert.Null(scope.EffectiveParentScope);
-		}
-
-		[Fact]
 		public Task ConstructAndDispose_WithLifetimeOfTwoParallelUnitTestClasses_ShouldNotInterfereWithEachOther()
 		{
 			var tasks = new ConcurrentQueue<Task>();

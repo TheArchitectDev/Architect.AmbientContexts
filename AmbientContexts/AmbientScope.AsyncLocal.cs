@@ -5,17 +5,17 @@ namespace Architect.AmbientContexts
 {
 	public abstract partial class AmbientScope<TConcreteScope>
 	{
-		// TODO Enhancement: Determine if AsyncLocal crosses AppDomain boundaries
-		// We could store an AmbientScopeIdentifier POCO with no properties in the AsyncLocal, and then go through a ConditionalWeakTable to find the corresponding instance
-		// However, that would incur an extra dictionary lookup
-		// It may be unnecessary in the first place, and we would first need to know how the static DefaultScope interacts with AppDomain boundaries before we can provide any guarantees anyway
+		// Note that AsyncLocal does not cross AppDomain boundaries, which we consider desirable behavior
 
 		/// <summary>
+		/// <para>
 		/// Contains the current async execution flow's AmbientScope.
+		/// </para>
+		/// <para>
+		/// Lazily instantiated by <see cref="SetAmbientScope"/>, as an optimization for when no scopes or only default scopes are used.
+		/// </para>
 		/// </summary>
-		private static AsyncLocal<TConcreteScope?> CurrentAmbientScope { get; } = new AsyncLocal<TConcreteScope?>();
-
-		private static bool WasCurrentScopeEverAssigned { get; set; }
+		private static AsyncLocal<TConcreteScope?>? CurrentAmbientScope;
 
 		/// <summary>
 		/// Makes the given scope the ambient one.
@@ -24,7 +24,9 @@ namespace Architect.AmbientContexts
 		/// <param name="newAmbientScope">The scope that is to be set as the ambient scope. May be null.</param>
 		protected static void SetAmbientScope(AmbientScope<TConcreteScope>? newAmbientScope)
 		{
-			WasCurrentScopeEverAssigned = true;
+			// Lazy instantiation works as an optimization for when no scopes or only default scopes are used
+			if (CurrentAmbientScope is null)
+				Interlocked.CompareExchange(ref CurrentAmbientScope, value: new AsyncLocal<TConcreteScope?>(), comparand: null);
 
 			if (newAmbientScope is null)
 			{
@@ -48,7 +50,7 @@ namespace Architect.AmbientContexts
 		/// </summary>
 		protected static void RemoveAmbientScope()
 		{
-			var currentAmbientScope = CurrentAmbientScope.Value;
+			var currentAmbientScope = CurrentAmbientScope?.Value;
 
 			if (currentAmbientScope is null) throw new InvalidOperationException("Tried to remove the current ambient scope when there was none.");
 
@@ -61,8 +63,8 @@ namespace Architect.AmbientContexts
 		/// </summary>
 		private static void RemoveAmbientScope(AmbientScope<TConcreteScope> ambientScope)
 		{
-			System.Diagnostics.Debug.Assert(ambientScope != null);
-			System.Diagnostics.Debug.Assert(ambientScope == CurrentAmbientScope.Value);
+			System.Diagnostics.Debug.Assert(ambientScope is not null);
+			System.Diagnostics.Debug.Assert(ambientScope == CurrentAmbientScope?.Value);
 
 			ReplaceAmbientScope(ambientScope, ambientScope.PhysicalParentScope);
 		}
@@ -79,8 +81,8 @@ namespace Architect.AmbientContexts
 		/// <param name="newAmbientScope">The scope that is to be set as the ambient scope. May be null.</param>
 		protected static void ReplaceAmbientScope(AmbientScope<TConcreteScope> currentScope, AmbientScope<TConcreteScope>? newAmbientScope)
 		{
-			if (!ReferenceEquals(currentScope, CurrentAmbientScope.Value))
-				throw new InvalidOperationException("The supposed current scope was not the current ambient scope. Always dispose or deactivate in reverse order of creation.");
+			if (!ReferenceEquals(currentScope, CurrentAmbientScope?.Value))
+				throw new InvalidOperationException("The supposed current scope was not the current ambient scope. Always dispose or deactivate in reverse order of activation.");
 
 			SetAmbientScope(newAmbientScope);
 		}
@@ -94,7 +96,19 @@ namespace Architect.AmbientContexts
 			var result = considerDefaultScope ? DefaultScope : null;
 
 			// Use of AsyncLocal optimized away as long as it has not been touched
-			if (WasCurrentScopeEverAssigned) result = CurrentAmbientScope.Value ?? result;
+			if (CurrentAmbientScope is not null)
+			{
+				var ambientScope = CurrentAmbientScope.Value;
+
+				// A method like DisposeAsync() that disposes an AmbientScope will not propagate that change to its caller
+				// The caller would see the disposed scope
+				// Navigate up through disposed scopes to counteract this effect
+				// Use the physical rather than the effective parent: ForceCreateNew only obscures until the new scope is disposed
+				while (ambientScope?.State == AmbientScopeState.Disposed)
+					ambientScope = ambientScope.PhysicalParentScope;
+
+				if (ambientScope is not null) result = ambientScope;
+			}
 
 			return result;
 		}

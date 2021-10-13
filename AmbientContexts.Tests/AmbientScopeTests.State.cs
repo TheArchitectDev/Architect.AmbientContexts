@@ -64,21 +64,6 @@ namespace Architect.AmbientContexts.Tests
 		}
 		
 		[Fact]
-		public void Deactivate_FromActivateState_ShouldResultInNullParents()
-		{
-			using var outerScope = new ManuallyActivatedScope(1, AmbientScopeOption.ForceCreateNew);
-			using var innerScope = new ManuallyActivatedScope(1, AmbientScopeOption.JoinExisting);
-
-			outerScope.Activate();
-			innerScope.Activate();
-			
-			innerScope.Deactivate();
-
-			Assert.Null(innerScope.PhysicalParentScope);
-			Assert.Null(innerScope.EffectiveParentScope);
-		}
-		
-		[Fact]
 		public void Construct_WithActivateFromConstructor_ShouldResultInStateActive()
 		{
 			using var scope = new TestScope(1, AmbientScopeOption.ForceCreateNew);

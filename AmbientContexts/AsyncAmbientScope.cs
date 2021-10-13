@@ -34,42 +34,9 @@ namespace Architect.AmbientContexts
 			// Perform our primary disposal immediately
 			var isDisposing = this.BaseDisposeImplementation();
 
-			if (!isDisposing) return new ValueTask();
-
-			try
-			{
-				// Let the subclass perform its disposal
-				var subclassDisposalTask = this.DisposeAsyncImplementation();
-
-				// On immediate success, finish up
-				if (subclassDisposalTask.IsCompleted)
-				{
-					this.UnsetParent();
-					return subclassDisposalTask;
-				}
-
-				// Return a task that awaits and then finishes up
-				return AwaitTaskAndUnsetParent(subclassDisposalTask);
-			}
-			catch
-			{
-				// On failure, finish up
-				this.UnsetParent();
-				throw;
-			}
-
-			// Local function that awaits the input task and then unsets the parent
-			async ValueTask AwaitTaskAndUnsetParent(ValueTask task)
-			{
-				try
-				{
-					await task;
-				}
-				finally
-				{
-					this.UnsetParent();
-				}
-			}
+			return isDisposing
+				? this.DisposeAsyncImplementation()
+				: new ValueTask();
 		}
 
 		/// <summary>
