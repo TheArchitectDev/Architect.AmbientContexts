@@ -35,9 +35,11 @@ namespace Architect.AmbientContexts
 			}
 
 			if (ReferenceEquals(newAmbientScope, CurrentAmbientScope.Value))
-				throw new InvalidOperationException("The given scope was already the current ambient scope.");
+				ThrowAlreadyCurrent();
 
 			CurrentAmbientScope.Value = (TConcreteScope)newAmbientScope;
+
+			static void ThrowAlreadyCurrent() => throw new InvalidOperationException("The given scope was already the current ambient scope.");
 		}
 
 		/// <summary>
@@ -52,9 +54,11 @@ namespace Architect.AmbientContexts
 		{
 			var currentAmbientScope = CurrentAmbientScope?.Value;
 
-			if (currentAmbientScope is null) throw new InvalidOperationException("Tried to remove the current ambient scope when there was none.");
+			if (currentAmbientScope is null) ThrowNoAmbientScope();
 
-			RemoveAmbientScope(currentAmbientScope);
+			RemoveAmbientScope(currentAmbientScope!);
+
+			static void ThrowNoAmbientScope() => throw new InvalidOperationException("Tried to remove the current ambient scope when there was none.");
 		}
 
 		/// <summary>
@@ -82,9 +86,11 @@ namespace Architect.AmbientContexts
 		protected static void ReplaceAmbientScope(AmbientScope<TConcreteScope> currentScope, AmbientScope<TConcreteScope>? newAmbientScope)
 		{
 			if (!ReferenceEquals(currentScope, CurrentAmbientScope?.Value))
-				throw new InvalidOperationException("The supposed current scope was not the current ambient scope. Always dispose or deactivate in reverse order of activation.");
+				ThrowNotCurrent();
 
 			SetAmbientScope(newAmbientScope);
+
+			static void ThrowNotCurrent() => throw new InvalidOperationException("The supposed current scope was not the current ambient scope. Always dispose or deactivate in reverse order of activation.");
 		}
 
 		/// <summary>

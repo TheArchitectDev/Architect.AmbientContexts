@@ -36,6 +36,7 @@ Release notes:
 - Improved the protections against race conditions.
 - Parent properties are no longer unset on disposal (although implementations should not rely on this detail).
 - Performance improvement: A scope now avoids even instantiating its AsyncLocal as long as only its default scope is used, as is common in production for certain scopes.
+- Performance improvement: The JIT can now inline more code, since exceptions have been moved into helper methods.
 
 1.1.0:
 - Introduced non-generic AmbientScope base class.
