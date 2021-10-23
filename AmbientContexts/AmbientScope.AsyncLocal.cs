@@ -100,10 +100,10 @@ namespace Architect.AmbientContexts
 			{
 				var ambientScope = CurrentAmbientScope.Value;
 
-				// A method like DisposeAsync() that disposes an AmbientScope will not propagate that change to its caller
+				// An async method that disposes an AmbientScope, like DisposeAsync(), will not propagate that change to its caller
 				// The caller would see the disposed scope
-				// Navigate up through disposed scopes to counteract this effect
-				// Use the physical rather than the effective parent: ForceCreateNew only obscures until the new scope is disposed
+				// To counteract this effect, navigate up through disposed scopes
+				// Use the physical rather than the effective parent: the scope was disposed, so even if it used ForceCreateNew, its obscurement no longer applies
 				while (ambientScope?.State == AmbientScopeState.Disposed)
 					ambientScope = ambientScope.PhysicalParentScope;
 

@@ -50,7 +50,7 @@ namespace Architect.AmbientContexts
 		/// Null otherwise.
 		/// </para>
 		/// <para>
-		/// Note that this property returns null if the scope has not been activated.
+		/// Note that this property always returns null if the scope has not been activated.
 		/// </para>
 		/// </summary>
 		protected TConcreteScope? EffectiveParentScope { get; private set; }
@@ -128,7 +128,7 @@ namespace Architect.AmbientContexts
 		/// </para>
 		/// <para>
 		/// This method should generally be called at the very end of the subclass' constructor.
-		/// <strong>After activation, no constructor may throw, or there is nothing to dispose to undo the activation!</strong>
+		/// <strong>After a scope's constructor activates the scope, it must never throw, or there would be no disposable object to undo the activation!</strong>
 		/// </para>
 		/// </summary>
 		protected void Activate()
@@ -193,7 +193,8 @@ namespace Architect.AmbientContexts
 		/// Returns the effective root scope from the current scope's perspective, which is either itself or the greatest accessible ancestor.
 		/// </para>
 		/// <para>
-		/// An ancestor is accessible if it uses <see cref="AmbientScopeOption.JoinExisting"/>.
+		/// Only a scope that uses <see cref="AmbientScopeOption.JoinExisting"/> can access its predecessor.
+		/// As soon as a scope with another <see cref="AmbientScopeOption"/> is encountered, it termintes the effective chain.
 		/// See also <see cref="EffectiveParentScope"/>.
 		/// </para>
 		/// </summary>
