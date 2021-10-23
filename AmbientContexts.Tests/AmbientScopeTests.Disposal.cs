@@ -138,7 +138,7 @@ namespace Architect.AmbientContexts.Tests
 
 		/// <summary>
 		/// This tests a former issue caused by the fact that AsyncLocal changes are NOT observable further up the call stack than the nearest async method (which may be the method making the change).
-		/// A layer of indirection was added to tackle this issue.
+		/// To counteract the effect, the method that retrieves the current <see cref="AmbientScope"/> now navigates up through disposed scopes.
 		/// </summary>
 		[Fact]
 		public async Task Dispose_FromDeeperAsyncMethod_ShouldHaveEffectObservableInCaller()
