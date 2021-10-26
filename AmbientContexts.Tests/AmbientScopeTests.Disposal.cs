@@ -5,6 +5,8 @@ namespace Architect.AmbientContexts.Tests
 {
 	public sealed partial class AmbientScopeTests
 	{
+		// #TODO: Create replacement tests
+		/*
 		[Fact]
 		public void SetDefaultScope_Regularly_ShouldNotMakeScopeAmbient()
 		{
@@ -134,5 +136,6 @@ namespace Architect.AmbientContexts.Tests
 		private sealed class StaticTestScope8 : StaticTestScope<StaticTestScope8>
 		{
 		}
+		*/
 	}
 }

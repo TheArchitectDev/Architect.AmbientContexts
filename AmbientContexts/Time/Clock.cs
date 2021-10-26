@@ -13,7 +13,7 @@ namespace Architect.AmbientContexts
 	/// </para>
 	/// <para>
 	/// A default scope that uses <see cref="DateTime.Now"/> is registered by default.
-	/// A different default can be registered on startup through <see cref="ClockScopeExtensions.UseClockScope(IServiceProvider, Func{DateTime})"/>.
+	/// A different default can be registered on startup through <see cref="ClockScopeExtensions.AddClockScope"/>.
 	/// </para>
 	/// <para>
 	/// Outer code may construct a custom <see cref="ClockScope"/> inside a using statement, causing any code within the using block to see that instance.

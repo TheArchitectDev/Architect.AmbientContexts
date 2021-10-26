@@ -1,4 +1,6 @@
 ﻿using System;
+using Architect.AmbientContexts.Defaults;
+using Microsoft.Extensions.Hosting;
 
 namespace Architect.AmbientContexts.Example
 {
@@ -38,7 +40,7 @@ namespace Architect.AmbientContexts.Example
 		}
 
 		/// <summary>
-		/// Demonstrates use of the custom <see cref="LogScope"/> class implemented for this example.
+		/// Demonstrates use of the custom <see cref="LogScope"/> class implemented just for this example.
 		/// This example, including the <see cref="LogScope"/> class, is intended to demonstrate how you can create and use your own type that uses the Ambient Context pattern.
 		/// </summary>
 		private static void DemonstrateLogScope()
@@ -48,7 +50,7 @@ namespace Architect.AmbientContexts.Example
 
 			try
 			{
-				// For demonstration purposes: this will throw a NullReferenceException, which we catch
+				// For demonstration purposes: This will throw a NullReferenceException, which we catch
 				LogScope.Current.WriteEntry("ERROR: How did we log when no LogScope was registered?");
 			}
 			catch (NullReferenceException)
@@ -57,8 +59,12 @@ namespace Architect.AmbientContexts.Example
 				Console.WriteLine();
 			}
 
-			// This line is what we might call in Startup.Configure()
-			LogScope.SetDefault(new[] { new ConsoleLogger() });
+			// Setup normally happens in Startup.ConfigureServices()
+			var hostBuilder = new HostBuilder();
+			hostBuilder.ConfigureServices(services =>
+				services.AddDefaultScope(new LogScope(AmbientScopeOption.NoNesting, new[] { new ConsoleLogger() }, isDefaultScope: true)));
+			using var host = hostBuilder.Build();
+			host.Start();
 
 			{
 				LogScope.Current.WriteEntry("This should write to the default log scope, which writes to the console.");
@@ -86,6 +92,11 @@ namespace Architect.AmbientContexts.Example
 			using (new LogScope(AmbientScopeOption.ForceCreateNew, Array.Empty<ILogger>()))
 			{
 				LogScope.Current.WriteEntry("This should write to NO loggers at all, with the default logger obscured away.");
+				Console.WriteLine();
+			}
+
+			{
+				LogScope.Current.WriteEntry("This should write to the default log scope again.");
 				Console.WriteLine();
 			}
 		}

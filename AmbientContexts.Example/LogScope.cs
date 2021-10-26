@@ -24,12 +24,7 @@ namespace Architect.AmbientContexts.Example
 		/// </summary>
 		/// <param name="scopeOption">Allows joining any existing scope (i.e. adding additional logging mechanisms) or obscuring it (i.e. temporarily replacing the logging mechanisms).</param>
 		/// <param name="loggers">The loggers to defer to.</param>
-		public LogScope(AmbientScopeOption scopeOption, IEnumerable<ILogger> loggers)
-			: this(scopeOption, loggers, isDefaultScope: false)
-		{
-		}
-
-		private LogScope(AmbientScopeOption scopeOption, IEnumerable<ILogger> loggers, bool isDefaultScope)
+		public LogScope(AmbientScopeOption scopeOption, IEnumerable<ILogger> loggers, bool isDefaultScope = false)
 			: base(scopeOption)
 		{
 			if (loggers is null) throw new ArgumentNullException(nameof(loggers));
@@ -48,12 +43,6 @@ namespace Architect.AmbientContexts.Example
 			if (!isDefaultScope) this.Activate();
 		}
 		
-		internal static void SetDefault(IEnumerable<ILogger> loggers)
-		{
-			var defaultScope = new LogScope(AmbientScopeOption.NoNesting, loggers, isDefaultScope: true);
-			SetDefaultScope(defaultScope);
-		}
-
 		protected override void DisposeImplementation()
 		{
 			// Dispose our own disposable resources

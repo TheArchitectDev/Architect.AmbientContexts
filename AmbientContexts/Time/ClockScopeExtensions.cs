@@ -1,56 +1,24 @@
 ﻿using System;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Hosting;
+using Architect.AmbientContexts.Defaults;
+using Microsoft.Extensions.DependencyInjection;
 
 // ReSharper disable once CheckNamespace
 namespace Architect.AmbientContexts
 {
 	public static class ClockScopeExtensions
 	{
-		#region Configuration
-
 		/// <summary>
 		/// <para>
-		/// Enables static, injection-free access to the registered clock through the <see cref="ClockScope"/> class.
+		/// Configures the default behavior of the <see cref="Clock"/> class.
 		/// </para>
 		/// <para>
-		/// This overwrites the clock that is exposed by default.
+		/// If this method is not invoked, <see cref="Clock"/> is available based on <see cref="DateTime.Now"/>.
 		/// </para>
 		/// </summary>
-		public static IApplicationBuilder UseClockScope(this IApplicationBuilder applicationBuilder, Func<DateTime> nowSource)
+		public static IServiceCollection AddClockScope(this IServiceCollection services, Func<DateTime> defaultNowSource)
 		{
-			UseClockScope(applicationBuilder.ApplicationServices, nowSource);
-			return applicationBuilder;
+			services.AddDefaultScope(new ClockScope(defaultNowSource, AmbientScopeOption.NoNesting));
+			return services;
 		}
-		
-		/// <summary>
-		/// <para>
-		/// Enables static, injection-free access to the registered clock through the <see cref="ClockScope"/> class.
-		/// </para>
-		/// <para>
-		/// This overwrites the clock that is exposed by default.
-		/// </para>
-		/// </summary>
-		public static IHost UseClockScope(this IHost host, Func<DateTime> nowSource)
-		{
-			UseClockScope(host.Services, nowSource);
-			return host;
-		}
-
-		/// <summary>
-		/// <para>
-		/// Enables static, injection-free access to the registered clock through the <see cref="ClockScope"/> class.
-		/// </para>
-		/// <para>
-		/// This overwrites the clock that is exposed by default.
-		/// </para>
-		/// </summary>
-		public static IServiceProvider UseClockScope(this IServiceProvider serviceProvider, Func<DateTime> nowSource)
-		{
-			ClockScope.SetDefaultValue(nowSource ?? throw new ArgumentNullException(nameof(nowSource)));
-			return serviceProvider;
-		}
-
-		#endregion
 	}
 }

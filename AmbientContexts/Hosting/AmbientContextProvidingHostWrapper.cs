@@ -30,7 +30,7 @@ namespace Architect.AmbientContexts.Hosting
 	{
 		static AmbientContextProvidingHostWrapper()
 		{
-			DefaultScopeContext.CurrentValue = new AsyncLocal<DefaultScopeContext>();
+			DefaultScopeContext.CurrentValue = new AsyncLocal<DefaultScopeContext?>();
 		}
 
 		public IServiceProvider Services
@@ -51,12 +51,15 @@ namespace Architect.AmbientContexts.Hosting
 		{
 			this.DefaultScopeContext = defaultScopeContext ?? throw new ArgumentNullException(nameof(defaultScopeContext));
 			this.WrappedHost = wrappedHost ?? throw new ArgumentNullException(nameof(wrappedHost));
+
+			DefaultScopeContext.CurrentValue!.Value = this.DefaultScopeContext;
 		}
 
 		public void Dispose()
 		{
 			try
 			{
+				DefaultScopeContext.CurrentValue!.Value = null;
 				this.DefaultScopeContext.Dispose();
 			}
 			finally
@@ -65,18 +68,23 @@ namespace Architect.AmbientContexts.Hosting
 			}
 		}
 
-		public Task StartAsync(CancellationToken cancellationToken = default)
+		public Task StartAsync(CancellationToken cancellationToken = default) // Must NOT use async keyword, to affect caller with AsyncLocal
 		{
 			DefaultScopeContext.CurrentValue!.Value = this.DefaultScopeContext;
 
 			return this.WrappedHost.StartAsync(cancellationToken);
 		}
 
-		public Task StopAsync(CancellationToken cancellationToken = default)
+		public async Task StopAsync(CancellationToken cancellationToken = default)
 		{
-			DefaultScopeContext.CurrentValue!.Value = this.DefaultScopeContext;
-
-			return this.WrappedHost.StopAsync(cancellationToken);
+			try
+			{
+				await this.WrappedHost.StopAsync(cancellationToken);
+			}
+			finally
+			{
+				DefaultScopeContext.CurrentValue!.Value = this.DefaultScopeContext;
+			}
 		}
 	}
 }

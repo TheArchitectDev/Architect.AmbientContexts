@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.Serialization;
 using System.Threading;
 using Architect.AmbientContexts.Defaults;
 using Microsoft.Extensions.Hosting;
@@ -25,6 +26,12 @@ namespace Architect.AmbientContexts
 	{
 		public override string ToString() => this.GetType().Name;
 
+		static AmbientScope()
+		{
+			var dummyInstance = (TConcreteScope)FormatterServices.GetUninitializedObject(typeof(TConcreteScope));
+			StaticDefaultKeeper<TConcreteScope>.DefaultScope = dummyInstance.CreateInitialDefaultScope();
+		}
+
 		/// <summary>
 		/// <para>
 		/// A default scope that is always present, acting as a ubiquitous bottom layer beneath any regular scopes.
@@ -34,18 +41,8 @@ namespace Architect.AmbientContexts
 		/// Otherwise, the static default scope is returned.
 		/// </para>
 		/// </summary>
-		protected static TConcreteScope? DefaultScope
-		{
-			get
-			{
-				// If we are running from an IHost that has an active DefaultScopeContext, use that
-				// Otherwise, use the global default (reserved for the first registered container)
-				var defaultScopeContext = DefaultScopeContext.Current;
-				return defaultScopeContext is null
-					? DefaultScopeRegistrationExtensions.DefaultKeeper<TConcreteScope>.DefaultScope
-					: defaultScopeContext.GetDefaultScope<TConcreteScope>();
-			}
-		}
+		protected static TConcreteScope? DefaultScope => DefaultScopeContext.Current?.GetDefaultScope<TConcreteScope>() ??
+			StaticDefaultKeeper<TConcreteScope>.DefaultScope;
 
 		/// <summary>
 		/// <para>
@@ -126,10 +123,11 @@ namespace Architect.AmbientContexts
 					// Avoid repeated disposal
 					return false;
 				case AmbientScopeState.New:
-					// Nothing to do
+				// Nothing to do
 				case AmbientScopeState.Default:
-					// Unset us as the default scope, if we were it
-					Interlocked.CompareExchange(ref DefaultScopeValue, value: null, comparand: (TConcreteScope)this);
+					// Unset us as the static default scope, if we were it
+					// If we were the default in an IHost-based DefaultScopeContext, do nothing, as it has its own mechanism of omitting disposed default scopes
+					Interlocked.CompareExchange(ref StaticDefaultKeeper<TConcreteScope>.DefaultScope, value: null, comparand: (TConcreteScope)this);
 					break;
 				case AmbientScopeState.Active:
 					this.DeactivateCore(unsetParent: false);
@@ -232,28 +230,6 @@ namespace Architect.AmbientContexts
 		}
 
 		/// <summary>
-		/// <para>
-		/// Sets a default, global root scope that is always present, acting as a ubiquitous bottom layer beneath any regular scopes.
-		/// </para>
-		/// <para>
-		/// This method overwrites and disposes the potential previous value.
-		/// </para>
-		/// <para>
-		/// If the default scope is disposed while it is still the default scope, it will remove itself from the position.
-		/// </para>
-		/// </summary>
-		/// <param name="defaultScope">The default scope to register. May be null to unset.</param>
-		protected static void SetDefaultScope(TConcreteScope? defaultScope)
-		{
-			if (defaultScope != null)
-				defaultScope.ConvertToDefaultScope();
-
-			var previousInstance = Interlocked.Exchange(ref DefaultScopeValue, defaultScope);
-
-			previousInstance?.Dispose();
-		}
-
-		/// <summary>
 		/// Moves the current scope into <see cref="AmbientScopeState.Default"/>, throwing if it is unsuitable.
 		/// </summary>
 		internal void ConvertToDefaultScope()
@@ -268,6 +244,20 @@ namespace Architect.AmbientContexts
 				throw new InvalidOperationException("The scope has a parent somehow, but the default scope must not have one.");
 
 			this.ChangeState(AmbientScopeState.Default);
+		}
+
+		// #TODO: If one container uses a different default, and the other wants the implicit default, the implicit default is currently gone.
+		/// <summary>
+		/// <para>
+		/// Can be overridden to set the initial default scope.
+		/// </para>
+		/// <para>
+		/// <em>In absence of static abstract members, this method has non-static. It must not reference any instance members.</em>
+		/// </para>
+		/// </summary>
+		protected virtual TConcreteScope? CreateInitialDefaultScope()
+		{
+			return null;
 		}
 	}
 

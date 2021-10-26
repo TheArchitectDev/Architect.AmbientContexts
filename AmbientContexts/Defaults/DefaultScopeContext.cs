@@ -21,60 +21,77 @@ namespace Architect.AmbientContexts.Defaults
 		/// Returns the current context, if any.
 		/// </summary>
 		public static DefaultScopeContext? Current => CurrentValue?.Value;
-		internal static AsyncLocal<DefaultScopeContext>? CurrentValue { get; set; }
-		
+		internal static AsyncLocal<DefaultScopeContext?>? CurrentValue { get; set; }
+
 		/// <summary>
 		/// The current context's default scopes, indexed by type.
 		/// </summary>
-		private Dictionary<Type, AmbientScope> ScopesByType { get; } = new Dictionary<Type, AmbientScope>();
+		private Dictionary<Type, AmbientScope> ScopesByType { get; set; } = null!;
 
 		/// <summary>
-		/// <para>
+		/// Until we start reading, this is populated and <see cref="ScopesByType"/> is null.
+		/// Once we start reading, this becomes null and <see cref="ScopesByType"/> becomes populated.
+		/// </summary>
+		private Dictionary<Type, AmbientScope>? ScopesByTypeBuilder { get; set; } = new Dictionary<Type, AmbientScope>();
+
+		/// <summary>
 		/// Returns the current context's default scope of type <typeparamref name="T"/>, if any.
-		/// </para>
-		/// <para>
-		/// This method must not be invoked until the DI container is built.
-		/// </para>
 		/// </summary>
 		public T? GetDefaultScope<T>()
-			where T : AmbientScope
+			where T : AmbientScope<T>
 		{
+			if (this.ScopesByTypeBuilder is not null) this.StartReading();
+
 			var result = (T?)this.ScopesByType.GetValueOrDefault(typeof(T));
+			if (result?.State == AmbientScopeState.Disposed) return null;
 			return result;
 		}
 
 		/// <summary>
-		/// <para>
 		/// Assigns the given <paramref name="scope"/> as the current context's default scope of type <typeparamref name="T"/>.
-		/// </para>
-		/// <para>
-		/// This method must not be invoked after the DI container is built. It is only thread-safe until <see cref="ScopesByType"/> is being read from.
-		/// </para>
 		/// </summary>
 		public void SetDefaultScope<T>(T? scope)
 			where T : AmbientScope<T>
 		{
-			lock (this.ScopesByType)
+			AmbientScope? previousInstance;
+
+			lock (this.ScopesByTypeBuilder ?? new object())
 			{
-				var previousInstance = this.ScopesByType.GetValueOrDefault(typeof(T));
+				if (this.ScopesByTypeBuilder is null) throw new InvalidOperationException("Once default scopes are being retrieved, they can no longer be modified.");
+
+				previousInstance = this.ScopesByTypeBuilder.GetValueOrDefault(typeof(T));
 
 				if (scope is null)
 				{
-					this.ScopesByType.Remove(typeof(T));
+					this.ScopesByTypeBuilder.Remove(typeof(T));
 				}
 				else
 				{
 					scope.ConvertToDefaultScope();
 
-					this.ScopesByType[typeof(T)] = scope;
+					this.ScopesByTypeBuilder[typeof(T)] = scope;
 				}
+			}
 
-				previousInstance?.Dispose();
+			previousInstance?.Dispose();
+		}
+
+		private void StartReading()
+		{
+			if (this.ScopesByTypeBuilder is null) return;
+
+			lock (this.ScopesByTypeBuilder)
+			{
+				this.ScopesByType = this.ScopesByTypeBuilder;
+				this.ScopesByTypeBuilder = null;
 			}
 		}
 
 		public void Dispose()
 		{
+			// Avoid dictionary modification after disposal
+			this.StartReading();
+
 			var exceptions = ImmutableList<Exception>.Empty;
 
 			foreach (var scope in this.ScopesByType.Values)

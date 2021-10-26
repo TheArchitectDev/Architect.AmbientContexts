@@ -17,7 +17,7 @@ namespace Architect.AmbientContexts
 			previousState = (AmbientScopeState)Interlocked.Exchange(ref this._state, (int)newState);
 		}
 
-		private bool TryChangeState(AmbientScopeState newState, AmbientScopeState expectedCurrentState)
+		internal bool TryChangeState(AmbientScopeState newState, AmbientScopeState expectedCurrentState)
 		{
 			var previousState = Interlocked.CompareExchange(ref this._state, (int)newState, (int)expectedCurrentState);
 			return previousState == (int)expectedCurrentState;

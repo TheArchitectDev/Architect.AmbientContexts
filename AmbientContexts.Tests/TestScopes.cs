@@ -11,11 +11,6 @@ namespace Architect.AmbientContexts.Tests
 		public Action OnDispose { get; set; }
 		public Func<ValueTask> OnDisposeAsync { get; set; }
 
-		static TestScope()
-		{
-			SetDefaultScope(DefaultScopeConstant);
-		}
-
 		public int Index { get; }
 		public int ParentIndex => Current.EffectiveParentScope.Index;
 
@@ -42,6 +37,11 @@ namespace Architect.AmbientContexts.Tests
 			if (task != null) await task.Value;
 		}
 
+		protected override TestScope CreateInitialDefaultScope()
+		{
+			return DefaultScopeConstant;
+		}
+
 		public static TestScope Current => GetAmbientScope();
 		public static TestScope CurrentNondefault => GetAmbientScope(considerDefaultScope: false);
 	}
@@ -49,11 +49,6 @@ namespace Architect.AmbientContexts.Tests
 	internal class ManuallyActivatedScope : AmbientScope<ManuallyActivatedScope>
 	{
 		public const int DefaultIndex = -1;
-
-		static ManuallyActivatedScope()
-		{
-			SetDefaultScope(new ManuallyActivatedScope(DefaultIndex, AmbientScopeOption.NoNesting));
-		}
 
 		public int Index { get; }
 		public int ParentIndex => Current.EffectiveParentScope.Index;
@@ -72,6 +67,11 @@ namespace Architect.AmbientContexts.Tests
 
 		protected override void DisposeImplementation()
 		{
+		}
+
+		protected override ManuallyActivatedScope CreateInitialDefaultScope()
+		{
+			return new ManuallyActivatedScope(DefaultIndex, AmbientScopeOption.NoNesting);
 		}
 
 		public new void Activate() => base.Activate();
@@ -111,19 +111,6 @@ namespace Architect.AmbientContexts.Tests
 		protected override void DisposeImplementation()
 		{
 			this.IsCustomDisposed = true;
-		}
-
-		public static void SetDefaultScope(int index)
-		{
-			var instance = Activator.CreateInstance<TSelf>();
-			instance.Index = index;
-
-			SetDefaultScope(instance);
-		}
-
-		public static new void SetDefaultScope(TSelf instance)
-		{
-			AmbientScope<TSelf>.SetDefaultScope(instance);
 		}
 	}
 }

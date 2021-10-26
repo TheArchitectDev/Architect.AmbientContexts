@@ -39,7 +39,6 @@ namespace Architect.AmbientContexts.Hosting
 
 			if (context is not null)
 			{
-				// More aggressive determination
 				var currentIHostDescriptor = services.LastOrDefault(descriptor => descriptor.ServiceType == typeof(IHost));
 				var hasPriorRegistration = ReferenceEquals(currentIHostDescriptor?.ImplementationFactory, (Func<IServiceProvider, IHost, IHost>)context.CreateHostWrapper);
 				shouldRegister = !hasPriorRegistration;
