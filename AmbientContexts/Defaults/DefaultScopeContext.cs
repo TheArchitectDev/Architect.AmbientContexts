@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
+using Architect.AmbientContexts.Hosting;
 using Microsoft.Extensions.Hosting;
 
 namespace Architect.AmbientContexts.Defaults
@@ -19,8 +20,8 @@ namespace Architect.AmbientContexts.Defaults
 		/// <summary>
 		/// Returns the current context, if any.
 		/// </summary>
-		public static DefaultScopeContext? Current => CurrentValue.Value;
-		internal static AsyncLocal<DefaultScopeContext> CurrentValue { get; } = new AsyncLocal<DefaultScopeContext>();
+		public static DefaultScopeContext? Current => CurrentValue?.Value;
+		internal static AsyncLocal<DefaultScopeContext>? CurrentValue { get; set; }
 		
 		/// <summary>
 		/// The current context's default scopes, indexed by type.
@@ -28,7 +29,12 @@ namespace Architect.AmbientContexts.Defaults
 		private Dictionary<Type, AmbientScope> ScopesByType { get; } = new Dictionary<Type, AmbientScope>();
 
 		/// <summary>
+		/// <para>
 		/// Returns the current context's default scope of type <typeparamref name="T"/>, if any.
+		/// </para>
+		/// <para>
+		/// This method must not be invoked until the DI container is built.
+		/// </para>
 		/// </summary>
 		public T? GetDefaultScope<T>()
 			where T : AmbientScope
@@ -38,7 +44,12 @@ namespace Architect.AmbientContexts.Defaults
 		}
 
 		/// <summary>
+		/// <para>
 		/// Assigns the given <paramref name="scope"/> as the current context's default scope of type <typeparamref name="T"/>.
+		/// </para>
+		/// <para>
+		/// This method must not be invoked after the DI container is built. It is only thread-safe until <see cref="ScopesByType"/> is being read from.
+		/// </para>
 		/// </summary>
 		public void SetDefaultScope<T>(T? scope)
 			where T : AmbientScope<T>
@@ -79,6 +90,16 @@ namespace Architect.AmbientContexts.Defaults
 			}
 
 			if (!exceptions.IsEmpty) throw new AggregateException(exceptions);
+		}
+
+		/// <summary>
+		/// Creates an <see cref="IHost"/> wrapper around the given <paramref name="hostToWrap"/>.
+		/// Whenever any code is run from the resulting <see cref="IHost"/>, it activates the current <see cref="DefaultScopeContext"/> as the ambient default.
+		/// </summary>
+		internal IHost CreateHostWrapper(IServiceProvider _, IHost hostToWrap)
+		{
+			var result = new AmbientContextProvidingHostWrapper(this, hostToWrap);
+			return result;
 		}
 	}
 }

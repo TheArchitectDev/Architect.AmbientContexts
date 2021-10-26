@@ -28,11 +28,16 @@ namespace Architect.AmbientContexts.Hosting
 	/// </summary>
 	internal class AmbientContextProvidingHostWrapper : IHost
 	{
+		static AmbientContextProvidingHostWrapper()
+		{
+			DefaultScopeContext.CurrentValue = new AsyncLocal<DefaultScopeContext>();
+		}
+
 		public IServiceProvider Services
 		{
 			get
 			{
-				DefaultScopeContext.CurrentValue.Value = this.DefaultScopeContext;
+				DefaultScopeContext.CurrentValue!.Value = this.DefaultScopeContext;
 
 				return this.WrappedHost.Services;
 			}
@@ -45,7 +50,6 @@ namespace Architect.AmbientContexts.Hosting
 		public AmbientContextProvidingHostWrapper(DefaultScopeContext defaultScopeContext, IHost wrappedHost)
 		{
 			this.DefaultScopeContext = defaultScopeContext ?? throw new ArgumentNullException(nameof(defaultScopeContext));
-
 			this.WrappedHost = wrappedHost ?? throw new ArgumentNullException(nameof(wrappedHost));
 		}
 
@@ -63,14 +67,14 @@ namespace Architect.AmbientContexts.Hosting
 
 		public Task StartAsync(CancellationToken cancellationToken = default)
 		{
-			DefaultScopeContext.CurrentValue.Value = this.DefaultScopeContext;
+			DefaultScopeContext.CurrentValue!.Value = this.DefaultScopeContext;
 
 			return this.WrappedHost.StartAsync(cancellationToken);
 		}
 
 		public Task StopAsync(CancellationToken cancellationToken = default)
 		{
-			DefaultScopeContext.CurrentValue.Value = this.DefaultScopeContext;
+			DefaultScopeContext.CurrentValue!.Value = this.DefaultScopeContext;
 
 			return this.WrappedHost.StopAsync(cancellationToken);
 		}

@@ -10,6 +10,45 @@ namespace Architect.AmbientContexts.Defaults
 	/// </summary>
 	public static class DefaultScopeRegistrationExtensions
 	{
+		internal static class DefaultKeeper<T>
+			where T : AmbientScope<T>
+		{
+			public static T? DefaultScope { get; private set; }
+
+			private static IServiceCollection? ServiceCollectionResponsibleForDefaultScope { get; set; }
+
+			private static object RegistrationLock { get; } = new object();
+
+			/// <summary>
+			/// <para>
+			/// Sets the default scope of type <typeparamref name="T"/> associated with the given DI container.
+			/// </para>
+			/// <para>
+			/// The first container for which a default scope of type <typeparamref name="T"/> is registered gets a global, static default.
+			/// If any further containers are used (like when running several integration tests), their default scopes are strictly associated with the container's <see cref="IHost"/>, and are only accessible from code run from it.
+			/// </para>
+			/// </summary>
+			/// <param name="services">The DI container to associate the default scope with.</param>
+			/// <param name="defaultScope">The default scope.</param>
+			public static bool TrySetDefaultScopeForContainer(IServiceCollection services, T? defaultScope)
+			{
+				lock (RegistrationLock)
+				{
+					// Use the static approach as long as we are the only container registering any defaults
+					if (ServiceCollectionResponsibleForDefaultScope is null || ServiceCollectionResponsibleForDefaultScope == services)
+					{
+						ServiceCollectionResponsibleForDefaultScope = services;
+						DefaultScope = defaultScope;
+						return true;
+					}
+					else
+					{
+						return false;
+					}
+				}
+			}
+		}
+
 		/// <summary>
 		/// <para>
 		/// Registers the given <paramref name="instance"/> as the default scope of type <typeparamref name="T"/> <em>for the current container</em>.
@@ -26,10 +65,13 @@ namespace Architect.AmbientContexts.Defaults
 		public static IServiceCollection AddDefaultScope<T>(this IServiceCollection services, T? instance)
 			where T : AmbientScope<T>
 		{
-			// Ensure that we have a mechanism to access default scopes associated with the host
-			services.TryAddAmbientContextProvidingHostWrapper(out var defaultScopeContext);
-			
-			defaultScopeContext.SetDefaultScope(instance);
+			// Attempt to use a static default scope
+			if (!DefaultKeeper<T>.TrySetDefaultScopeForContainer(services, instance))
+			{
+				// But if that was occupied, use a host-associated one instead
+				services.TryAddAmbientContextProvidingHostWrapper(out var defaultScopeContext);
+				defaultScopeContext.SetDefaultScope(instance);
+			}
 
 			return services;
 		}

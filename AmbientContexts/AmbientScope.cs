@@ -34,10 +34,18 @@ namespace Architect.AmbientContexts
 		/// Otherwise, the static default scope is returned.
 		/// </para>
 		/// </summary>
-		protected static TConcreteScope? DefaultScope =>
-			DefaultScopeContext.Current?.GetDefaultScope<TConcreteScope>() ?? // Prefer a context-associated default
-			DefaultScopeValue; // Fall back to the global default
-		private static TConcreteScope? DefaultScopeValue;
+		protected static TConcreteScope? DefaultScope
+		{
+			get
+			{
+				// If we are running from an IHost that has an active DefaultScopeContext, use that
+				// Otherwise, use the global default (reserved for the first registered container)
+				var defaultScopeContext = DefaultScopeContext.Current;
+				return defaultScopeContext is null
+					? DefaultScopeRegistrationExtensions.DefaultKeeper<TConcreteScope>.DefaultScope
+					: defaultScopeContext.GetDefaultScope<TConcreteScope>();
+			}
+		}
 
 		/// <summary>
 		/// <para>
