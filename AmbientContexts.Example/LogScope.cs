@@ -38,7 +38,7 @@ namespace Architect.AmbientContexts.Example
 			var loggerList = loggers.ToList();
 
 			// If we are joining the existing scope (rather than obscuring it) and there is one, insert the existing loggers before our own
-			if (scopeOption == AmbientScopeOption.JoinExisting && GetAmbientScope() != null)
+			if (scopeOption == AmbientScopeOption.JoinExisting && GetAmbientScope() is not null)
 				loggerList.InsertRange(0, GetAmbientScope().Loggers);
 
 			this.Loggers = loggerList;

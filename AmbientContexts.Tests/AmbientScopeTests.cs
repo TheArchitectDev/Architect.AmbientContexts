@@ -145,27 +145,6 @@ namespace Architect.AmbientContexts.Tests
 		}
 
 		[Fact]
-		public void Dispose_WithExceptionInSubclassDispose_ShouldStillUnsetParent()
-		{
-			using var scope = new TestScope(1, AmbientScopeOption.JoinExisting)
-			{
-				OnDispose = () => throw new TimeoutException(),
-			};
-
-			try
-			{
-				scope.Dispose();
-			}
-			catch (TimeoutException)
-			{
-				// Ignore our own exception
-			}
-
-			Assert.Null(scope.PhysicalParentScope);
-			Assert.Null(scope.EffectiveParentScope);
-		}
-
-		[Fact]
 		public void PhysicalParentScope_WithNoNesting_ShouldReturnNull()
 		{
 			using var scope = new ManuallyActivatedScope(1, AmbientScopeOption.NoNesting, noNestingIgnoresDefaultScope: true);

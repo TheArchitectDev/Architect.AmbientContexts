@@ -50,7 +50,7 @@ namespace Architect.AmbientContexts
 		/// Null otherwise.
 		/// </para>
 		/// <para>
-		/// Note that this property returns null if the scope has not been activated.
+		/// Note that this property always returns null if the scope has not been activated.
 		/// </para>
 		/// </summary>
 		protected TConcreteScope? EffectiveParentScope { get; private set; }
@@ -65,10 +65,13 @@ namespace Architect.AmbientContexts
 
 		protected AmbientScope(AmbientScopeOption scopeOption)
 		{
-			if (!(this is TConcreteScope)) throw new ArgumentException("The generic type parameter must be the type of the concrete AmbientScope subclass itself.");
-			if (!Enum.IsDefined(typeof(AmbientScopeOption), scopeOption)) throw new ArgumentException($"Undefined {nameof(AmbientScopeOption)}: {scopeOption}.");
+			if (!(this is TConcreteScope)) ThrowInvalidTypeArgument();
+			if (!Enum.IsDefined(typeof(AmbientScopeOption), scopeOption)) ThrowUndefinedAmbientScopeOption(scopeOption);
 
 			this.ScopeOption = scopeOption;
+
+			static void ThrowInvalidTypeArgument() => throw new ArgumentException("The generic type parameter must be the type of the concrete AmbientScope subclass itself.");
+			static void ThrowUndefinedAmbientScopeOption(AmbientScopeOption scopeOption) => throw new ArgumentException($"Undefined {nameof(AmbientScopeOption)}: {scopeOption}.");
 		}
 
 		public sealed override void Dispose() // Must NOT be virtual
@@ -78,16 +81,8 @@ namespace Architect.AmbientContexts
 
 			if (!isDisposing) return;
 
-			try
-			{
-				// Let the subclass perform its disposal
-				this.DisposeImplementation();
-			}
-			finally
-			{
-				// Finish up
-				this.UnsetParent();
-			}
+			// Let the subclass perform its disposal
+			this.DisposeImplementation();
 		}
 
 		/// <summary>
@@ -98,7 +93,7 @@ namespace Architect.AmbientContexts
 		{
 			// If we have a physical parent, make sure it is not disposed
 			if (this.State == AmbientScopeState.Active && this.PhysicalParentScope?.State == AmbientScopeState.Disposed)
-				throw new InvalidOperationException("The ambient scope being disposed has a physical parent scope that was disposed before it.");
+				ThrowIncorrectDisposalOrder();
 
 			this.ChangeState(AmbientScopeState.Disposed, out var previousState);
 
@@ -108,25 +103,23 @@ namespace Architect.AmbientContexts
 					// Avoid repeated disposal
 					return false;
 				case AmbientScopeState.New:
-					// Nothing to do
+				// Nothing to do
 				case AmbientScopeState.Default:
 					// Unset us as the default scope, if we were it
 					Interlocked.CompareExchange(ref DefaultScopeValue, value: null, comparand: (TConcreteScope)this);
 					break;
 				case AmbientScopeState.Active:
-					this.DeactivateCore(unsetParent: false);
+					this.DeactivateCore();
 					break;
 				default:
-					throw new NotImplementedException($"{nameof(this.BaseDisposeImplementation)} is not implemented for state {previousState}.");
+					ThrowSwitchNotImplementedForState(previousState);
+					break;
 			}
 
 			return true;
-		}
 
-		private protected void UnsetParent()
-		{
-			this.PhysicalParentScope = null;
-			this.EffectiveParentScope = null;
+			static void ThrowIncorrectDisposalOrder() => throw new InvalidOperationException("The ambient scope being disposed has a physical parent scope that was disposed before it.");
+			static void ThrowSwitchNotImplementedForState(AmbientScopeState state) => throw new NotImplementedException($"{nameof(this.BaseDisposeImplementation)} is not implemented for state {state}.");
 		}
 
 		/// <summary>
@@ -142,30 +135,39 @@ namespace Architect.AmbientContexts
 		/// </para>
 		/// <para>
 		/// This method should generally be called at the very end of the subclass' constructor.
-		/// After activation, no constructor may throw, or there is nothing to dispose to undo the activation!
+		/// <strong>After a scope's constructor activates the scope, it must never throw, or there would be no disposable object to undo the activation!</strong>
 		/// </para>
 		/// </summary>
 		protected void Activate()
 		{
-			if (this.State != AmbientScopeState.New)
-				throw new InvalidOperationException($"The {this} was not in a valid state to be activated.");
-
 			var physicalParentScope = GetAmbientScope(considerDefaultScope: false);
 
-			var isNested = physicalParentScope != null || // There is a physical parent scope, or
-				(DefaultScope != null && !this.NoNestingIgnoresDefaultScope); // There is a default scope and we care
+			var isNested = physicalParentScope is not null || // There is a physical parent scope, or
+				(DefaultScope is not null && !this.NoNestingIgnoresDefaultScope); // There is a default scope and we care
 
 			if (this.ScopeOption == AmbientScopeOption.NoNesting && isNested)
-				throw new InvalidOperationException($"{nameof(AmbientScopeOption)}.{nameof(AmbientScopeOption.NoNesting)} was specified, but an outer scope is present.");
+				ThrowNoNestingWithOuterScope();
+
+			if (!this.TryChangeState(newState: AmbientScopeState.Active, expectedCurrentState: AmbientScopeState.New))
+				ThrowInvalidStateForActivation(this);
 
 			this.PhysicalParentScope = physicalParentScope;
 			this.EffectiveParentScope = this.ScopeOption == AmbientScopeOption.JoinExisting
 				? this.PhysicalParentScope ?? DefaultScope
 				: null;
 
-			SetAmbientScope(this);
+			try
+			{
+				SetAmbientScope(this);
+			}
+			catch
+			{
+				this.ChangeState(AmbientScopeState.New);
+				throw;
+			}
 
-			this.ChangeState(AmbientScopeState.Active);
+			static void ThrowNoNestingWithOuterScope() => throw new InvalidOperationException($"{nameof(AmbientScopeOption)}.{nameof(AmbientScopeOption.NoNesting)} was specified, but an outer scope is present.");
+			static void ThrowInvalidStateForActivation(AmbientScope scope) => throw new InvalidOperationException($"The {scope} was not in a valid state to be activated.");
 		}
 
 		/// <summary>
@@ -179,23 +181,23 @@ namespace Architect.AmbientContexts
 		protected void Deactivate()
 		{
 			if (!this.TryChangeState(newState: AmbientScopeState.New, expectedCurrentState: AmbientScopeState.Active))
-				throw new InvalidOperationException($"The {this} was not in a valid state to be deactivated.");
+				ThrowInvalidStateForDeactivation(this);
 
 			this.DeactivateCore();
+
+			static void ThrowInvalidStateForDeactivation(AmbientScope scope) => throw new InvalidOperationException($"The {scope} was not in a valid state to be deactivated.");
 		}
 
 		/// <summary>
 		/// Deactivates this scope as the ambient scope, popping it off the ambient stack.
-		/// Checks only that the state is no longer active, as it should have been atomically updated by the caller.
+		/// Checks only that the state is no longer <see cref="AmbientScopeState.Active"/>, as it should have been atomically updated by the caller.
 		/// </summary>
-		private void DeactivateCore(bool unsetParent = true)
+		private void DeactivateCore()
 		{
-			if (this.State == AmbientScopeState.Active) throw new Exception("Update the state before invoking this method.");
+			System.Diagnostics.Debug.Assert(this.State != AmbientScopeState.Active, "Update the state before invoking this method.");
 
 			// Overwrite with our physical parent (which may be null) our position as the current ambient scope
 			ReplaceAmbientScope(this, this.PhysicalParentScope);
-
-			if (unsetParent) this.UnsetParent();
 		}
 
 		/// <summary>
@@ -203,7 +205,8 @@ namespace Architect.AmbientContexts
 		/// Returns the effective root scope from the current scope's perspective, which is either itself or the greatest accessible ancestor.
 		/// </para>
 		/// <para>
-		/// An ancestor is accessible if it uses <see cref="AmbientScopeOption.JoinExisting"/>.
+		/// Only a scope that uses <see cref="AmbientScopeOption.JoinExisting"/> can access its predecessor.
+		/// As soon as a scope with another <see cref="AmbientScopeOption"/> is encountered, it termintes the effective chain.
 		/// See also <see cref="EffectiveParentScope"/>.
 		/// </para>
 		/// </summary>
@@ -227,23 +230,27 @@ namespace Architect.AmbientContexts
 		/// <param name="defaultScope">The default scope to register. May be null to unset.</param>
 		protected static void SetDefaultScope(TConcreteScope? defaultScope)
 		{
-			if (defaultScope != null)
+			if (defaultScope is not null)
 			{
 				if (defaultScope.State != AmbientScopeState.New)
-					throw new ArgumentException($"The {defaultScope} was not in a valid state to be made the default scope.");
+					ThrowInvalidStateForMakingDefault(defaultScope);
 
 				if (defaultScope.ScopeOption == AmbientScopeOption.JoinExisting)
-					throw new ArgumentException($"The default scope must not use {nameof(AmbientScopeOption)}.{AmbientScopeOption.JoinExisting}.");
+					ThrowJoinExistingIsInvalid();
 
-				if (defaultScope.EffectiveParentScope != null || defaultScope.PhysicalParentScope != null)
-					throw new InvalidOperationException("The scope has a parent somehow, but the default scope must not have one.");
+				if (defaultScope.EffectiveParentScope is not null || defaultScope.PhysicalParentScope is not null)
+					ThrowParentScopeIsInvalid();
+
+				defaultScope.ChangeState(AmbientScopeState.Default);
 			}
-
-			defaultScope?.ChangeState(AmbientScopeState.Default);
 
 			var previousInstance = Interlocked.Exchange(ref DefaultScopeValue, defaultScope);
 
 			previousInstance?.Dispose();
+
+			static void ThrowInvalidStateForMakingDefault(AmbientScope scope) => throw new ArgumentException($"The {scope} was not in a valid state to be made the default scope.");
+			static void ThrowJoinExistingIsInvalid() => throw new ArgumentException($"The default scope must not use {nameof(AmbientScopeOption)}.{AmbientScopeOption.JoinExisting}.");
+			static void ThrowParentScopeIsInvalid() => throw new Exception("The scope has a parent somehow, but the default scope must not have one.");
 		}
 	}
 

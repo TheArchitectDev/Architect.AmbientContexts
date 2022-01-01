@@ -39,7 +39,7 @@ namespace Architect.AmbientContexts.Tests
 		protected override async ValueTask DisposeAsyncImplementation()
 		{
 			var task = this.OnDisposeAsync?.Invoke();
-			if (task != null) await task.Value;
+			if (task is not null) await task.Value;
 		}
 
 		public static TestScope Current => GetAmbientScope();

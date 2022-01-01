@@ -7,7 +7,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AmbientContexts", "AmbientC
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AmbientContexts.Tests", "AmbientContexts.Tests\AmbientContexts.Tests.csproj", "{FCD7E9B1-05A5-43A3-89E6-693AE37D85ED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AmbientContexts.Example", "AmbientContexts.Example\AmbientContexts.Example.csproj", "{B429D8C3-1510-4626-BD72-2C1E1116D1E5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AmbientContexts.Example", "AmbientContexts.Example\AmbientContexts.Example.csproj", "{B429D8C3-1510-4626-BD72-2C1E1116D1E5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6FF6409A-7FB5-40C4-A052-78B5BA4E5952}"
+	ProjectSection(SolutionItems) = preProject
+		pipeline-publish-preview.yml = pipeline-publish-preview.yml
+		pipeline-publish-stable.yml = pipeline-publish-stable.yml
+		pipeline-verify.yml = pipeline-verify.yml
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

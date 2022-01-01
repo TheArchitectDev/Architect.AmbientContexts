@@ -10,13 +10,13 @@
     <!-- NoWarn: 1573=SummariesOnOnlySomeParams -->
     <!-- NoWarn: 1591=MissingXmlComments -->
     <NoWarn>1573;1591</NoWarn>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>9</LangVersion>
     <Nullable>Enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup>
-    <VersionPrefix>1.1.0</VersionPrefix>
+    <VersionPrefix>1.1.1</VersionPrefix>
     <PackageReleaseNotes></PackageReleaseNotes>
     <Description>
 Provides the basis for implementing the Ambient Context pattern. Includes a Clock implementation based on it.
@@ -30,6 +30,13 @@ An example from .NET is System.Transactions.TransactionScope. Any code (such as 
 https://github.com/TheArchitectDev/Architect.AmbientContexts
 
 Release notes:
+
+1.1.1:
+- Manually disposing scopes from a deeper async level (such as a DisposeAsync() method with the async keyword) now properly affects methods up the call stack and no longer breaks scope nesting.
+- Improved the protections against race conditions.
+- Parent properties are no longer unset on disposal (although implementations should not rely on this detail).
+- Performance improvement: A scope now avoids even instantiating its AsyncLocal as long as only its default scope is used, as is common in production for certain scopes.
+- Performance improvement: The JIT can now inline more code, since exceptions have been moved into helper methods.
 
 1.1.0:
 - Introduced non-generic AmbientScope base class.

@@ -8,6 +8,13 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!-- NoWarn: 1573=SummariesOnOnlySomeParams -->
+    <!-- NoWarn: 1591=MissingXmlComments -->
+    <NoWarn>1573;1591</NoWarn>
+    <LangVersion>9</LangVersion>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\AmbientContexts\AmbientContexts.csproj" />
   </ItemGroup>

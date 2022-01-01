@@ -7,24 +7,32 @@ namespace Architect.AmbientContexts.Tests
 	public sealed partial class AmbientScopeTests
 	{
 		[Fact]
-		public void WasCurrentScopeEverAssigned_ForDifferentScopes_ShouldReturnExpectedResult()
+		public void CurrentAmbientScope_ForDifferentScopes_ShouldReturnExpectedResult()
 		{
-			_ = new CustomizedScope();
-			_ = new NoncustomizedScope();
+			using var customizedScope = new CustomizedScope();
+			using var noncustomizedScope = new NoncustomizedScope();
 
-			var customizedScopeWasCurrentScopeTouchedPropertyGetter = typeof(AmbientScope<CustomizedScope>).GetProperty("WasCurrentScopeEverAssigned", BindingFlags.Static | BindingFlags.NonPublic)?.GetMethod ??
-				throw new Exception("Could not find the WasCurrentScopeEverAssigned property getter.");
+			var customizedScopeCurrentAmbientScopeStaticField = typeof(AmbientScope<CustomizedScope>).GetField("CurrentAmbientScope", BindingFlags.Static | BindingFlags.NonPublic) ??
+				throw new Exception("Could not find the CurrentAmbientScope field.");
 
-			var result = (bool)customizedScopeWasCurrentScopeTouchedPropertyGetter.Invoke(obj: null, parameters: null);
+			var result = customizedScopeCurrentAmbientScopeStaticField.GetValue(obj: null);
+			Assert.Null(result);
 
-			Assert.True(result);
+			customizedScope.Activate();
 
-			var noncustomizedScopeWasCurrentScopeTouchedPropertyGetter = typeof(AmbientScope<NoncustomizedScope>).GetProperty("WasCurrentScopeEverAssigned", BindingFlags.Static | BindingFlags.NonPublic)?.GetMethod ??
-				throw new Exception("Could not find the WasCurrentScopeEverAssigned property getter.");
+			result = customizedScopeCurrentAmbientScopeStaticField.GetValue(obj: null);
+			Assert.NotNull(result); // Initialized now that a non-default scope has been activated
 
-			result = (bool)noncustomizedScopeWasCurrentScopeTouchedPropertyGetter.Invoke(obj: null, parameters: null);
+			customizedScope.Dispose();
 
-			Assert.False(result);
+			result = customizedScopeCurrentAmbientScopeStaticField.GetValue(obj: null);
+			Assert.NotNull(result); // Remains intialized
+
+			var noncustomizedScopeCurrentAmbientScopeStaticField = typeof(AmbientScope<NoncustomizedScope>).GetField("CurrentAmbientScope", BindingFlags.Static | BindingFlags.NonPublic) ??
+				throw new Exception("Could not find the CurrentAmbientScope field.");
+
+			result = noncustomizedScopeCurrentAmbientScopeStaticField.GetValue(obj: null);
+			Assert.Null(result);
 		}
 
 		private sealed class CustomizedScope : AmbientScope<CustomizedScope>
@@ -32,11 +40,15 @@ namespace Architect.AmbientContexts.Tests
 			public CustomizedScope()
 				: base(AmbientScopeOption.NoNesting)
 			{
-				SetAmbientScope(this);
 			}
 
 			protected override void DisposeImplementation()
 			{
+			}
+
+			public new void Activate()
+			{
+				base.Activate();
 			}
 		}
 

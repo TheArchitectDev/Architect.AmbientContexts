@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Architect.AmbientContexts.Tests
@@ -133,6 +134,47 @@ namespace Architect.AmbientContexts.Tests
 
 		private sealed class StaticTestScope8 : StaticTestScope<StaticTestScope8>
 		{
+		}
+
+		/// <summary>
+		/// This tests a former issue caused by the fact that AsyncLocal changes are NOT observable further up the call stack than the nearest async method (which may be the method making the change).
+		/// To counteract the effect, the method that retrieves the current <see cref="AmbientScope"/> now navigates up through disposed scopes.
+		/// </summary>
+		[Fact]
+		public async Task Dispose_FromDeeperAsyncMethod_ShouldHaveEffectObservableInCaller()
+		{
+			new StaticTestScope9(value: 1);
+			var innerScope = new StaticTestScope9(value: 2);
+
+			Assert.Equal(2, StaticTestScope9.Current.Value);
+
+			await DisposeInnerScopeAsync(); // Disposes the inner scope
+
+			Assert.Equal(1, StaticTestScope9.Current.Value); // Should see the outer scope
+
+			async Task DisposeInnerScopeAsync()
+			{
+				await Task.Yield();
+
+				Assert.Equal(2, StaticTestScope9.Current.Value);
+
+				innerScope.Dispose();
+
+				Assert.Equal(1, StaticTestScope9.Current.Value);
+			}
+		}
+
+		private sealed class StaticTestScope9 : StaticTestScope<StaticTestScope9>
+		{
+			public int Value { get; }
+
+			public StaticTestScope9(int value)
+				: base(AmbientScopeOption.JoinExisting)
+			{
+				this.Value = value;
+
+				this.Activate();
+			}
 		}
 	}
 }

@@ -12,7 +12,7 @@ namespace Architect.AmbientContexts.Example
 		public void WriteEntry(string message, string submessage = null)
 		{
 			Console.WriteLine(message);
-			if (submessage != null)
+			if (submessage is not null)
 			{
 				Console.Write('\t');
 				Console.WriteLine(submessage);
