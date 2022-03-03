@@ -72,6 +72,7 @@ namespace Architect.AmbientContexts.Tests.Time
 			}
 		}
 
+#if NETCOREAPP3_1
 		[Fact]
 		public void Now_WithNestedCustomScopes_ShouldMatchResultOfClockScopeNow()
 		{
@@ -84,5 +85,7 @@ namespace Architect.AmbientContexts.Tests.Time
 				Assert.Equal(expectedResult, result);
 			}
 		}
+#endif
+
 	}
 }

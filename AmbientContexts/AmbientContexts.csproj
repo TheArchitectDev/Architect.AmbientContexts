@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFrameworks>netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <AssemblyName>Architect.AmbientContexts</AssemblyName>
     <RootNamespace>Architect.AmbientContexts</RootNamespace>
   </PropertyGroup>
@@ -16,8 +16,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <VersionPrefix>1.1.1</VersionPrefix>
-    <PackageReleaseNotes></PackageReleaseNotes>
+    <VersionPrefix>1.2.0</VersionPrefix>
+    <PackageReleaseNotes>Added support for .NET standard 2.0</PackageReleaseNotes>
     <Description>
 Provides the basis for implementing the Ambient Context pattern. Includes a Clock implementation based on it.
 
@@ -64,5 +64,4 @@ Release notes:
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="3.1.0" />
   </ItemGroup>
-
 </Project>

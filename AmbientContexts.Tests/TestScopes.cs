@@ -3,7 +3,13 @@ using System.Threading.Tasks;
 
 namespace Architect.AmbientContexts.Tests
 {
-	internal sealed class TestScope : AsyncAmbientScope<TestScope>
+	internal sealed class TestScope :
+#if NETCOREAPP3_1
+		AsyncAmbientScope<TestScope>
+#else
+		AmbientScope<TestScope>
+#endif
+
 	{
 		public const int DefaultIndex = -1;
 		public static readonly TestScope DefaultScopeConstant = new TestScope(DefaultIndex, AmbientScopeOption.NoNesting, activate: false);
@@ -36,12 +42,13 @@ namespace Architect.AmbientContexts.Tests
 			this.OnDispose?.Invoke();
 		}
 
+#if NETCOREAPP3_1
 		protected override async ValueTask DisposeAsyncImplementation()
 		{
 			var task = this.OnDisposeAsync?.Invoke();
 			if (task is not null) await task.Value;
 		}
-
+#endif
 		public static TestScope Current => GetAmbientScope();
 		public static TestScope CurrentNondefault => GetAmbientScope(considerDefaultScope: false);
 	}

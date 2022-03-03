@@ -55,6 +55,7 @@ namespace Architect.AmbientContexts.Tests.Time
 			Assert.Equal(expectedResult, result);
 		}
 
+#if NETCOREAPP3_1
 		[Fact]
 		public void Current_WithCustomScope_ShouldReturnExpectedResult()
 		{
@@ -75,6 +76,7 @@ namespace Architect.AmbientContexts.Tests.Time
 
 			Assert.Equal(innerScope, result);
 		}
+#endif
 
 		[Fact]
 		public void Now_WithCustomScope_ShouldReturnExpectedResult()

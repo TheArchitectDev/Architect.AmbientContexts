@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
+#if NETCOREAPP3_1
+
 namespace Architect.AmbientContexts.Tests.Time
 {
 	public sealed class ClockScopeExtensionsTests
@@ -21,3 +23,5 @@ namespace Architect.AmbientContexts.Tests.Time
 		}
 	}
 }
+
+#endif

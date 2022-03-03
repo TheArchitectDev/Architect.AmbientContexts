@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Xunit;
 
+#if NETCOREAPP3_1
+
 namespace Architect.AmbientContexts.Tests
 {
 	public sealed class AsyncAmbientScopeTests
@@ -156,3 +158,5 @@ namespace Architect.AmbientContexts.Tests
 		}
 	}
 }
+
+#endif

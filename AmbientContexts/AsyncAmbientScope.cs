@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 
+#if NETCOREAPP3_1
+
 namespace Architect.AmbientContexts
 {
 	/// <summary>
@@ -55,7 +57,6 @@ namespace Architect.AmbientContexts
 			if (!valueTask.IsCompleted)
 				valueTask.AsTask().GetAwaiter().GetResult(); // GetAwaiter() should not be performed on ValueTasks (https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/)
 		}
-
 		/// <summary>
 		/// <para>
 		/// Allows custom dispose logic to be implemented without the chance of disrupting the base dispose logic.
@@ -64,3 +65,5 @@ namespace Architect.AmbientContexts
 		protected abstract ValueTask DisposeAsyncImplementation();
 	}
 }
+
+#endif
