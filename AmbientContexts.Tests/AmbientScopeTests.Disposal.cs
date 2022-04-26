@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -143,8 +143,8 @@ namespace Architect.AmbientContexts.Tests
 		[Fact]
 		public async Task Dispose_FromDeeperAsyncMethod_ShouldHaveEffectObservableInCaller()
 		{
-			new StaticTestScope9(value: 1);
-			var innerScope = new StaticTestScope9(value: 2);
+			using var outerScope = new StaticTestScope9(value: 1);
+			using var innerScope = new StaticTestScope9(value: 2);
 
 			Assert.Equal(2, StaticTestScope9.Current.Value);
 

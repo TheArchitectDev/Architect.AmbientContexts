@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 
 namespace Architect.AmbientContexts
@@ -65,7 +65,7 @@ namespace Architect.AmbientContexts
 
 		protected AmbientScope(AmbientScopeOption scopeOption)
 		{
-			if (!(this is TConcreteScope)) ThrowInvalidTypeArgument();
+			if (this is not TConcreteScope) ThrowInvalidTypeArgument();
 			if (!Enum.IsDefined(typeof(AmbientScopeOption), scopeOption)) ThrowUndefinedAmbientScopeOption(scopeOption);
 
 			this.ScopeOption = scopeOption;
@@ -218,13 +218,23 @@ namespace Architect.AmbientContexts
 
 		/// <summary>
 		/// <para>
-		/// Sets a default, global root scope that is always present, acting as a ubiquitous bottom layer beneath any regular scopes.
+		/// Sets a default, static root scope that is always present, acting as a ubiquitous bottom layer beneath any regular scopes.
 		/// </para>
 		/// <para>
-		/// This method overwrites and disposes the potential previous value.
+		/// For example, <see cref="ClockScope"/> has a default based on <see cref="DateTime.UtcNow"/>.
+		/// </para>
+		/// <para>
+		/// This method overwrites and disposes its previous value, if any.
 		/// </para>
 		/// <para>
 		/// If the default scope is disposed while it is still the default scope, it will remove itself from the position.
+		/// </para>
+		/// <para>
+		/// <em>It is recommended to call this method from a static initializer.</em>
+		/// </para>
+		/// <para>
+		/// Manually configured defaults should be avoided, since such configurations tend to be bound a particular DI container or <see cref="Microsoft.Extensions.Hosting.IHost"/>.
+		/// Particularly during test runs, distinguishing between different configured defaults is infeasible.
 		/// </para>
 		/// </summary>
 		/// <param name="defaultScope">The default scope to register. May be null to unset.</param>

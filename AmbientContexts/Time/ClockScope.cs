@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 // ReSharper disable once CheckNamespace
 namespace Architect.AmbientContexts
@@ -12,8 +12,7 @@ namespace Architect.AmbientContexts
 	/// The mechanism optimizes accessiblity (through a static property) at the cost of transparency, making it suitable for obvious, ubiquitous, rarely-changing dependencies.
 	/// </para>
 	/// <para>
-	/// A default scope that uses <see cref="DateTime.Now"/> is registered by default.
-	/// A different default can be registered on startup through <see cref="ClockScopeExtensions.UseClockScope(IServiceProvider, Func{DateTime})"/>.
+	/// A default scope that uses <see cref="DateTime.UtcNow"/> is registered by default.
 	/// </para>
 	/// <para>
 	/// Outer code may construct a custom <see cref="ClockScope"/> inside a using statement, causing any code within the using block to see that instance.
@@ -23,30 +22,29 @@ namespace Architect.AmbientContexts
 	{
 		static ClockScope()
 		{
-			SetDefaultValue(() => DateTime.Now);
+			SetDefaultScope(new ClockScope(utcNowSource: () => DateTime.UtcNow, AmbientScopeOption.NoNesting));
 		}
 
 		/// <summary>
 		/// Returns the currently accessible <see cref="ClockScope"/>.
-		/// The scope is configurable from the outside, such as from startup.
+		/// A default is normally available, although it may be obscured by a local <see cref="ClockScope"/> instance.
 		/// </summary>
-		internal static ClockScope Current => GetAmbientScope() ?? ThrowNotConfigured();
+		internal static ClockScope Current => GetAmbientScope()!;
 
-		private static ClockScope ThrowNotConfigured() => throw new InvalidOperationException(
-			$"{nameof(ClockScope)} was not configured. Call {nameof(ClockScopeExtensions)}.{nameof(ClockScopeExtensions.UseClockScope)} on startup.");
-
-		internal DateTime Now => this.NowSource();
+		internal DateTime Now => this.UtcNowSource().ToLocalTime();
 		internal DateTime Today => this.Now.Date;
-		internal DateTime UtcNow => this.Now.ToUniversalTime();
+		internal DateTime UtcNow => this.UtcNowSource();
 
-		private Func<DateTime> NowSource { get; }
+		private Func<DateTime> UtcNowSource { get; }
 
 		/// <summary>
 		/// Establishes the given clock as the ambient one until the scope is disposed.
 		/// </summary>
-		/// <param name="nowSource">The clock to register, which produces the equivalent of <see cref="DateTime.Now"/>, i.e. the local time.</param>
-		public ClockScope(Func<DateTime> nowSource)
-			: this(nowSource, AmbientScopeOption.ForceCreateNew)
+		/// <param name="utcNowSource">The clock to register, which produces the equivalent of <see cref="DateTime.UtcNow"/>, i.e. the UTC time.
+		/// If it produces local times instead, they are interpreted correctly, but conversions may be lossy.
+		/// Times of an unknown kind are assumed to be in UTC.</param>
+		public ClockScope(Func<DateTime> utcNowSource)
+			: this(utcNowSource, AmbientScopeOption.ForceCreateNew)
 		{
 			this.Activate();
 		}
@@ -55,29 +53,21 @@ namespace Architect.AmbientContexts
 		/// Private constructor.
 		/// Does not activate this instance.
 		/// </summary>
-		private ClockScope(Func<DateTime> nowSource, AmbientScopeOption ambientScopeOption)
+		private ClockScope(Func<DateTime> utcNowSource, AmbientScopeOption ambientScopeOption)
 			: base(ambientScopeOption)
 		{
-			this.NowSource = nowSource ?? ThrowNullSource();
+			this.UtcNowSource = utcNowSource ?? ThrowNullSource();
 
-			static Func<DateTime> ThrowNullSource() => throw new ArgumentNullException(nameof(nowSource));
+			// Workaround for compatibility with sources of local time
+			if (this.UtcNowSource().Kind == DateTimeKind.Local)
+				this.UtcNowSource = () => utcNowSource!().ToUniversalTime();
+
+			static Func<DateTime> ThrowNullSource() => throw new ArgumentNullException(nameof(utcNowSource));
 		}
 
 		protected override void DisposeImplementation()
 		{
 			// Nothing to dispose
-		}
-
-		/// <summary>
-		/// Sets the ubiquitous default scope, overwriting and disposing the previous one if necessary.
-		/// </summary>
-		/// <param name="nowSource">The clock to register, which produces the equivalent of <see cref="DateTime.Now"/>, i.e. the local time. May be null to unregister.</param>
-		internal static void SetDefaultValue(Func<DateTime> nowSource)
-		{
-			var newDefaultScope = nowSource is null
-				? null
-				: new ClockScope(nowSource, AmbientScopeOption.NoNesting);
-			SetDefaultScope(newDefaultScope);
 		}
 	}
 }

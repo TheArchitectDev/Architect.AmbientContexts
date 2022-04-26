@@ -1,22 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <AssemblyName>Architect.AmbientContexts.Example</AssemblyName>
-    <RootNamespace>Architect.AmbientContexts.Example</RootNamespace>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net6.0</TargetFramework>
+		<AssemblyName>Architect.AmbientContexts.Example</AssemblyName>
+		<RootNamespace>Architect.AmbientContexts.Example</RootNamespace>
+		<IsPackable>False</IsPackable>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <!-- NoWarn: 1573=SummariesOnOnlySomeParams -->
-    <!-- NoWarn: 1591=MissingXmlComments -->
-    <NoWarn>1573;1591</NoWarn>
-    <LangVersion>9</LangVersion>
-  </PropertyGroup>
+	<PropertyGroup>
+		<!-- NoWarn: 1573=SummariesOnOnlySomeParams -->
+		<!-- NoWarn: 1591=MissingXmlComments -->
+		<NoWarn>1573;1591</NoWarn>
+		<LangVersion>10</LangVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\AmbientContexts\AmbientContexts.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\AmbientContexts\AmbientContexts.csproj" />
+	</ItemGroup>
 
 </Project>

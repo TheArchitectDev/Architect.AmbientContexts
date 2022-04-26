@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
@@ -97,8 +97,8 @@ namespace Architect.AmbientContexts.Tests
 		{
 			var tasks = new ConcurrentQueue<Task>();
 
-			var now = new DateTime(1234, 01, 02, 03, 00, 00, DateTimeKind.Utc);
-			using var clockScope = new ClockScope(() => now);
+			var utcNow = new DateTime(1234, 01, 02, 03, 00, 00, DateTimeKind.Utc);
+			using var clockScope = new ClockScope(() => utcNow);
 
 			Parallel.For(0, 20, i =>
 			{
@@ -110,7 +110,7 @@ namespace Architect.AmbientContexts.Tests
 					testInstance.AssertNowDelayedAsync(TestClass1.FixedTime).GetAwaiter().GetResult();
 
 					// Will evaluate after testInstance and its ClockScope have been disposed
-					tasks.Enqueue(testInstance.AssertNowDelayedAsync(now));
+					tasks.Enqueue(testInstance.AssertNowDelayedAsync(utcNow));
 				}
 				else
 				{
@@ -120,7 +120,7 @@ namespace Architect.AmbientContexts.Tests
 					testInstance.AssertNowDelayedAsync(TestClass2.FixedTime).GetAwaiter().GetResult();
 
 					// Will evaluate after testInstance and its ClockScope have been disposed
-					tasks.Enqueue(testInstance.AssertNowDelayedAsync(now));
+					tasks.Enqueue(testInstance.AssertNowDelayedAsync(utcNow));
 				}
 			});
 
@@ -129,7 +129,7 @@ namespace Architect.AmbientContexts.Tests
 
 		private sealed class TestClass1 : IDisposable
 		{
-			public static readonly DateTime FixedTime = new DateTime(0001, 01, 01, 12, 00, 00, DateTimeKind.Local);
+			public static readonly DateTime FixedTime = new DateTime(0001, 01, 01, 12, 00, 00, DateTimeKind.Utc);
 			private ClockScope Scope { get; } = new ClockScope(() => FixedTime);
 
 			public void Dispose()
@@ -140,14 +140,14 @@ namespace Architect.AmbientContexts.Tests
 			public async Task AssertNowDelayedAsync(DateTime expectedValue)
 			{
 				await Task.Delay(TimeSpan.FromMilliseconds(1));
-				var now = Clock.Now;
+				var now = Clock.UtcNow;
 				Assert.Equal(expectedValue, now);
 			}
 		}
 
 		private sealed class TestClass2 : IDisposable
 		{
-			public static readonly DateTime FixedTime = new DateTime(0002, 01, 01, 12, 00, 00, DateTimeKind.Local);
+			public static readonly DateTime FixedTime = new DateTime(0002, 01, 01, 12, 00, 00, DateTimeKind.Utc);
 			private ClockScope Scope { get; } = new ClockScope(() => FixedTime);
 
 			public void Dispose()
@@ -158,7 +158,7 @@ namespace Architect.AmbientContexts.Tests
 			public async Task AssertNowDelayedAsync(DateTime expectedValue)
 			{
 				await Task.Delay(TimeSpan.FromMilliseconds(1));
-				var now = Clock.Now;
+				var now = Clock.UtcNow;
 				Assert.Equal(expectedValue, now);
 			}
 		}

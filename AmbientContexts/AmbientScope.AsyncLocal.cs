@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 
 namespace Architect.AmbientContexts
@@ -34,43 +34,14 @@ namespace Architect.AmbientContexts
 				return;
 			}
 
+			System.Diagnostics.Debug.Assert(newAmbientScope.State == AmbientScopeState.Active);
+
 			if (ReferenceEquals(newAmbientScope, CurrentAmbientScope.Value))
 				ThrowAlreadyCurrent();
 
 			CurrentAmbientScope.Value = (TConcreteScope)newAmbientScope;
 
 			static void ThrowAlreadyCurrent() => throw new InvalidOperationException("The given scope was already the current ambient scope.");
-		}
-
-		/// <summary>
-		/// <para>
-		/// Removes the current ambient scope. If it has a physical parent, that becomes the ambient scope again.
-		/// </para>
-		/// <para>
-		/// Throws if there is no current ambient scope.
-		/// </para>
-		/// </summary>
-		protected static void RemoveAmbientScope()
-		{
-			var currentAmbientScope = CurrentAmbientScope?.Value;
-
-			if (currentAmbientScope is null) ThrowNoAmbientScope();
-
-			RemoveAmbientScope(currentAmbientScope!);
-
-			static void ThrowNoAmbientScope() => throw new InvalidOperationException("Tried to remove the current ambient scope when there was none.");
-		}
-
-		/// <summary>
-		/// Private implementation that removes the ambient scope known to be the current one.
-		/// Must only be called with the current, non-null scope.
-		/// </summary>
-		private static void RemoveAmbientScope(AmbientScope<TConcreteScope> ambientScope)
-		{
-			System.Diagnostics.Debug.Assert(ambientScope is not null);
-			System.Diagnostics.Debug.Assert(ambientScope == CurrentAmbientScope?.Value);
-
-			ReplaceAmbientScope(ambientScope, ambientScope.PhysicalParentScope);
 		}
 
 		/// <summary>
@@ -85,7 +56,12 @@ namespace Architect.AmbientContexts
 		/// <param name="newAmbientScope">The scope that is to be set as the ambient scope. May be null.</param>
 		protected static void ReplaceAmbientScope(AmbientScope<TConcreteScope> currentScope, AmbientScope<TConcreteScope>? newAmbientScope)
 		{
-			if (!ReferenceEquals(currentScope, CurrentAmbientScope?.Value))
+			// Find out the currently active scope, ignoring any disposed scopes that are not the target one
+			var activeScope = CurrentAmbientScope?.Value;
+			while (activeScope?.State == AmbientScopeState.Disposed && !ReferenceEquals(currentScope, activeScope))
+				activeScope = activeScope.PhysicalParentScope;
+
+			if (!ReferenceEquals(currentScope, activeScope))
 				ThrowNotCurrent();
 
 			SetAmbientScope(newAmbientScope);
