@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Threading;
 
 namespace Architect.AmbientContexts.Example
 {
@@ -10,13 +11,13 @@ namespace Architect.AmbientContexts.Example
 		private static void Main()
 		{
 			DemonstrateClockScope();
-			DemonstrateLogScope();
+			DemonstrateIdGeneratorScope();
 
 			Console.ReadKey(intercept: true);
 		}
 
 		/// <summary>
-		/// Demonstrates use of the included <see cref="ClockScope"/> class.
+		/// Demonstrates the use of the included <see cref="ClockScope"/> class.
 		/// </summary>
 		private static void DemonstrateClockScope()
 		{
@@ -38,56 +39,45 @@ namespace Architect.AmbientContexts.Example
 		}
 
 		/// <summary>
-		/// Demonstrates use of the custom <see cref="LogScope"/> class implemented for this example.
-		/// This example, including the <see cref="LogScope"/> class, is intended to demonstrate how you can create and use your own type that uses the Ambient Context pattern.
+		/// Demosntrates the use of a custom <see cref="IdGeneratorScope"/> type implemented just for this example.
+		/// This example, including the <see cref="IdGeneratorScope"/> type, is intended to demonstrate how you can create and use your own type that uses the Ambient Context pattern.
 		/// </summary>
-		private static void DemonstrateLogScope()
+		public static void DemonstrateIdGeneratorScope()
 		{
-			Console.WriteLine("Demonstrating LogScope:");
+			Console.WriteLine("Demonstrating IdGeneratorScope:");
 			Console.WriteLine();
 
-			try
+			Console.WriteLine("The default scope should generate random IDs:");
+			Console.WriteLine(IdGeneratorScope.Current.GenerateId());
+			Console.WriteLine(IdGeneratorScope.Current.GenerateId());
+			Console.WriteLine();
+
+			var previousId = 0L;
+			using (new IdGeneratorScope(generatorFunction: () => Interlocked.Increment(ref previousId)))
 			{
-				// For demonstration purposes: this will throw a NullReferenceException, which we catch
-				LogScope.Current.WriteEntry("ERROR: How did we log when no LogScope was registered?");
-			}
-			catch (NullReferenceException)
-			{
-				Console.WriteLine("Without registration, LogScope.Current is null.");
+				Console.WriteLine("The default scope is now obscured behind a local scope that generates incremental IDs:");
+				Console.WriteLine(IdGeneratorScope.Current.GenerateId());
+				Console.WriteLine(IdGeneratorScope.Current.GenerateId());
+				Console.WriteLine();
+
+				using (new IdGeneratorScope(generatorFunction: () => -1L))
+				{
+					Console.WriteLine("A nested local scope now obscures the previous one, always generating a value of -1:");
+					Console.WriteLine(IdGeneratorScope.Current.GenerateId());
+					Console.WriteLine(IdGeneratorScope.Current.GenerateId());
+					Console.WriteLine();
+				}
+
+				Console.WriteLine("With the nested scope disposed, we should reach the previous local scope, generating incremental IDs:");
+				Console.WriteLine(IdGeneratorScope.Current.GenerateId());
+				Console.WriteLine(IdGeneratorScope.Current.GenerateId());
 				Console.WriteLine();
 			}
 
-			// This line is what we might call in Startup.Configure()
-			LogScope.SetDefault(new[] { new ConsoleLogger() });
-
-			{
-				LogScope.Current.WriteEntry("This should write to the default log scope, which writes to the console.");
-				Console.WriteLine();
-			}
-
-			using (new LogScope(AmbientScopeOption.ForceCreateNew, new[] { new CapitalizedConsoleLogger() }))
-			{
-				LogScope.Current.WriteEntry("This should write ONLY to the capitalized console logger, with the default logger obscured away.");
-				Console.WriteLine();
-			}
-
-			using (new LogScope(AmbientScopeOption.ForceCreateNew, new[] { new CapitalizedConsoleLogger(), new CapitalizedConsoleLogger() }))
-			{
-				LogScope.Current.WriteEntry("This should write to TWO capitalized console loggers, with the default logger obscured away.");
-				Console.WriteLine();
-			}
-
-			using (new LogScope(AmbientScopeOption.JoinExisting, new[] { new CapitalizedConsoleLogger() }))
-			{
-				LogScope.Current.WriteEntry("This should write to both the default and the capitalized console loggers.");
-				Console.WriteLine();
-			}
-
-			using (new LogScope(AmbientScopeOption.ForceCreateNew, Array.Empty<ILogger>()))
-			{
-				LogScope.Current.WriteEntry("This should write to NO loggers at all, with the default logger obscured away.");
-				Console.WriteLine();
-			}
+			Console.WriteLine("With the local scope disposed, we should now reach the default scope once more:");
+			Console.WriteLine(IdGeneratorScope.Current.GenerateId());
+			Console.WriteLine(IdGeneratorScope.Current.GenerateId());
+			Console.WriteLine();
 		}
 	}
 }

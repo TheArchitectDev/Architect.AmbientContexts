@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Xunit;
 
 namespace Architect.AmbientContexts.Tests.Time
@@ -125,6 +125,40 @@ namespace Architect.AmbientContexts.Tests.Time
 			var offset = utcNow.Add(utcOffset) - now;
 
 			Assert.Equal(TimeSpan.Zero, offset);
+		}
+
+		/// <summary>
+		/// When DST causes an hour on the clock to be repeated, UtcNow and Now should reflect this appropriately if UTC input is used.
+		/// </summary>
+		[Fact]
+		public void UtcNow_WithCustomScopeAtDstRepeatedHourWithUtcInput_ShouldReturnExpectedResult()
+		{
+			var expectedResult = new DateTime(2022, 10, 30, 01, 30, 00, DateTimeKind.Local).ToUniversalTime().AddHours(2);
+
+			using var scope = new ClockScope(() => expectedResult);
+
+			var utcNow = ClockScope.Current.UtcNow;
+			var now = ClockScope.Current.Now;
+
+			Assert.Equal(expectedResult, utcNow);
+			Assert.Equal("2022-10-30T02:30:00.0000000+01:00", now.ToString("O"));
+		}
+
+		/// <summary>
+		/// When DST causes an hour on the clock to be repeated, UtcNow and Now cannot reflect this appropriately if local input is used.
+		/// </summary>
+		[Fact]
+		public void UtcNow_WithCustomScopeAtDstRepeatedHourWithLocalInput_IsExpectedToReturnLossyResult()
+		{
+			// Local datetime does not realize that the hours at this date go from 01:30 to 02:30 to 02:30 again (DST repeated hour)
+			// It cannot distinguish between the two duplicate hours, which renders it lossy
+			using var scope = new ClockScope(() => new DateTime(2022, 10, 30, 01, 30, 00, DateTimeKind.Local).AddHours(2));
+
+			var utcNow = ClockScope.Current.UtcNow;
+			var now = ClockScope.Current.Now;
+
+			Assert.Equal(new DateTime(2022, 10, 30, 01, 30, 00, DateTimeKind.Local).ToUniversalTime().AddHours(3), utcNow); // Alas, an hour too far
+			Assert.Equal("2022-10-30T03:30:00.0000000+01:00", now.ToString("O")); // Alas, an hour too far
 		}
 
 		[Fact]
