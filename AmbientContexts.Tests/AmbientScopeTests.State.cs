@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Xunit;
 
 namespace Architect.AmbientContexts.Tests
@@ -11,7 +11,7 @@ namespace Architect.AmbientContexts.Tests
 			using var scope = new ManuallyActivatedScope(1, AmbientScopeOption.ForceCreateNew);
 			Assert.Equal(AmbientScopeState.New, scope.State);
 		}
-		
+
 		[Fact]
 		public void Activate_Regularly_ShouldResultInStateActive()
 		{
@@ -21,7 +21,7 @@ namespace Architect.AmbientContexts.Tests
 
 			Assert.Equal(AmbientScopeState.Active, scope.State);
 		}
-		
+
 		[Fact]
 		public void Deactivate_WithPotentialParentScope_ShouldResultInNonNullParents()
 		{
@@ -30,11 +30,11 @@ namespace Architect.AmbientContexts.Tests
 
 			outerScope.Activate();
 			innerScope.Activate();
-			
+
 			Assert.NotNull(innerScope.PhysicalParentScope);
 			Assert.NotNull(innerScope.EffectiveParentScope);
 		}
-		
+
 		[Fact]
 		public void Deactivate_FromNewState_ShouldThrow()
 		{
@@ -42,7 +42,7 @@ namespace Architect.AmbientContexts.Tests
 
 			Assert.Throws<InvalidOperationException>(() => scope.Deactivate());
 		}
-		
+
 		[Fact]
 		public void Deactivate_FromDisposedState_ShouldThrow()
 		{
@@ -51,18 +51,18 @@ namespace Architect.AmbientContexts.Tests
 
 			Assert.Throws<InvalidOperationException>(() => scope.Deactivate());
 		}
-		
+
 		[Fact]
 		public void Deactivate_FromActivateState_ShouldResultInStateNew()
 		{
 			using var scope = new ManuallyActivatedScope(1, AmbientScopeOption.ForceCreateNew);
 			scope.Activate();
-			
+
 			scope.Deactivate();
 
 			Assert.Equal(AmbientScopeState.New, scope.State);
 		}
-		
+
 		[Fact]
 		public void Construct_WithActivateFromConstructor_ShouldResultInStateActive()
 		{
@@ -70,7 +70,7 @@ namespace Architect.AmbientContexts.Tests
 
 			Assert.Equal(AmbientScopeState.Active, scope.State);
 		}
-		
+
 		[Fact]
 		public void Dispose_FromStateNew_ShouldResultInStateDisposed()
 		{
@@ -80,7 +80,7 @@ namespace Architect.AmbientContexts.Tests
 
 			Assert.Equal(AmbientScopeState.Disposed, scope.State);
 		}
-		
+
 		[Fact]
 		public void Dispose_FromStateActive_ShouldResultInStateDisposed()
 		{
@@ -90,7 +90,7 @@ namespace Architect.AmbientContexts.Tests
 
 			Assert.Equal(AmbientScopeState.Disposed, scope.State);
 		}
-		
+
 		[Fact]
 		public void Dispose_TwiceFromStateActive_ShouldResultInStateDisposed()
 		{
