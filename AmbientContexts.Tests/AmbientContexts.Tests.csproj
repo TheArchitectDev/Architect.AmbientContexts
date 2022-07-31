@@ -7,13 +7,6 @@
 		<IsPackable>False</IsPackable>
 	</PropertyGroup>
 
-	<PropertyGroup>
-		<!-- NoWarn: 1573=SummariesOnOnlySomeParams -->
-		<!-- NoWarn: 1591=MissingXmlComments -->
-		<NoWarn>1573;1591</NoWarn>
-		<LangVersion>10</LangVersion>
-	</PropertyGroup>
-
 	<ItemGroup>
 		<PackageReference Include="coverlet.collector" Version="3.1.2">
 		  <PrivateAssets>all</PrivateAssets>
