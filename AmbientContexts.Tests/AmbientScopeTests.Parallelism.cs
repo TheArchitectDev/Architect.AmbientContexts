@@ -107,7 +107,7 @@ namespace Architect.AmbientContexts.Tests
 					using var testInstance = new TestClass1();
 
 					// Will evaluate while testInstance and its ClockScope are still available
-					testInstance.AssertNowDelayedAsync(TestClass1.FixedTime).GetAwaiter().GetResult();
+					testInstance.AssertNowDelayedAsync(TestClass1.PinnedTime).GetAwaiter().GetResult();
 
 					// Will evaluate after testInstance and its ClockScope have been disposed
 					tasks.Enqueue(testInstance.AssertNowDelayedAsync(utcNow));
@@ -117,7 +117,7 @@ namespace Architect.AmbientContexts.Tests
 					using var testInstance = new TestClass2();
 
 					// Will evaluate while testInstance and its ClockScope are still available
-					testInstance.AssertNowDelayedAsync(TestClass2.FixedTime).GetAwaiter().GetResult();
+					testInstance.AssertNowDelayedAsync(TestClass2.PinnedTime).GetAwaiter().GetResult();
 
 					// Will evaluate after testInstance and its ClockScope have been disposed
 					tasks.Enqueue(testInstance.AssertNowDelayedAsync(utcNow));
@@ -129,8 +129,8 @@ namespace Architect.AmbientContexts.Tests
 
 		private sealed class TestClass1 : IDisposable
 		{
-			public static readonly DateTime FixedTime = new DateTime(0001, 01, 01, 12, 00, 00, DateTimeKind.Utc);
-			private ClockScope Scope { get; } = new ClockScope(() => FixedTime);
+			public static readonly DateTime PinnedTime = new DateTime(0001, 01, 01, 12, 00, 00, DateTimeKind.Utc);
+			private ClockScope Scope { get; } = new ClockScope(() => PinnedTime);
 
 			public void Dispose()
 			{
@@ -147,8 +147,8 @@ namespace Architect.AmbientContexts.Tests
 
 		private sealed class TestClass2 : IDisposable
 		{
-			public static readonly DateTime FixedTime = new DateTime(0002, 01, 01, 12, 00, 00, DateTimeKind.Utc);
-			private ClockScope Scope { get; } = new ClockScope(() => FixedTime);
+			public static readonly DateTime PinnedTime = new DateTime(0002, 01, 01, 12, 00, 00, DateTimeKind.Utc);
+			private ClockScope Scope { get; } = new ClockScope(() => PinnedTime);
 
 			public void Dispose()
 			{

@@ -5,6 +5,26 @@ namespace Architect.AmbientContexts.Tests.Time
 {
 	public sealed class ClockScopeTests
 	{
+		[Theory]
+		[InlineData(DateTimeKind.Utc)]
+		[InlineData(DateTimeKind.Local)]
+		[InlineData(DateTimeKind.Unspecified)]
+		public void Construct_WithPinnedDateTime_ShouldMatchEquivalentFunc(DateTimeKind dateTimeKind)
+		{
+			using var comparisonInstance = new ClockScope(() => DateTime.SpecifyKind(DateTime.UnixEpoch, dateTimeKind));
+
+			var expectedUtcNow = Clock.UtcNow;
+			var expectedNow = Clock.Now;
+
+			using var instance = new ClockScope(DateTime.SpecifyKind(DateTime.UnixEpoch, dateTimeKind));
+
+			var utcNow = Clock.UtcNow;
+			var now = Clock.Now;
+
+			Assert.Equal(expectedUtcNow, utcNow);
+			Assert.Equal(expectedNow, now);
+		}
+
 		[Fact]
 		public void Current_WithNoRegistration_ShouldReturnDefaultClockScope()
 		{
@@ -130,10 +150,13 @@ namespace Architect.AmbientContexts.Tests.Time
 		/// <summary>
 		/// When DST causes an hour on the clock to be repeated, UtcNow and Now should reflect this appropriately if UTC input is used.
 		/// </summary>
-		[Fact]
-		public void UtcNow_WithCustomScopeAtDstRepeatedHourWithUtcInput_ShouldReturnExpectedResult()
+		[Theory]
+		[InlineData(DateTimeKind.Utc)]
+		[InlineData(DateTimeKind.Unspecified)]
+		public void UtcNow_WithCustomScopeAtDstRepeatedHourWithUtcOrUnspecifiedInput_ShouldReturnExpectedResult(DateTimeKind dateTimeKind)
 		{
 			var expectedResult = new DateTime(2022, 10, 30, 01, 30, 00, DateTimeKind.Local).ToUniversalTime().AddHours(2);
+			expectedResult = DateTime.SpecifyKind(expectedResult, dateTimeKind);
 
 			using var scope = new ClockScope(() => expectedResult);
 
