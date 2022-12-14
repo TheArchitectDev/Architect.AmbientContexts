@@ -12,7 +12,6 @@
 
 	<PropertyGroup>
 		<VersionPrefix>2.0.0</VersionPrefix>
-		<PackageReleaseNotes></PackageReleaseNotes>
 		<Description>
 Provides the basis for implementing the Ambient Context pattern. Includes a Clock implementation based on it.
 
@@ -32,6 +31,7 @@ Release notes:
 - BREAKING: Removed the RemoveAmbientScope() method. Deactivate() should be used instead.
 - Added support for netstandard2.0.
 - ClockScope's constructor now prefers UTC datetimes, to avoid lossy conversions (due to DST).
+- ClockScope now exposes a convenience constructor that takes a DateTime instead of a Func&lt;DateTime&gt;.
 
 1.1.1:
 - Manually disposing scopes from a deeper async level (such as a DisposeAsync() method with the async keyword) now properly affects methods up the call stack and no longer breaks scope nesting.

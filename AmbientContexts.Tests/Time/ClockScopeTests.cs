@@ -1,10 +1,31 @@
 using System;
+using System.Linq;
 using Xunit;
 
 namespace Architect.AmbientContexts.Tests.Time
 {
 	public sealed class ClockScopeTests
 	{
+		[Theory]
+		[InlineData(DateTimeKind.Utc)]
+		[InlineData(DateTimeKind.Local)]
+		[InlineData(DateTimeKind.Unspecified)]
+		public void Construct_WithPinnedDateTime_ShouldMatchEquivalentFunc(DateTimeKind dateTimeKind)
+		{
+			using var comparisonInstance = new ClockScope(() => DateTime.SpecifyKind(DateTime.UnixEpoch, dateTimeKind));
+
+			var expectedUtcNow = Clock.UtcNow;
+			var expectedNow = Clock.Now;
+
+			using var instance = new ClockScope(DateTime.SpecifyKind(DateTime.UnixEpoch, dateTimeKind));
+
+			var utcNow = Clock.UtcNow;
+			var now = Clock.Now;
+
+			Assert.Equal(expectedUtcNow, utcNow);
+			Assert.Equal(expectedNow, now);
+		}
+
 		[Fact]
 		public void Current_WithNoRegistration_ShouldReturnDefaultClockScope()
 		{
@@ -130,15 +151,22 @@ namespace Architect.AmbientContexts.Tests.Time
 		/// <summary>
 		/// When DST causes an hour on the clock to be repeated, UtcNow and Now should reflect this appropriately if UTC input is used.
 		/// </summary>
-		[Fact]
-		public void UtcNow_WithCustomScopeAtDstRepeatedHourWithUtcInput_ShouldReturnExpectedResult()
+		[Theory]
+		[InlineData(DateTimeKind.Utc)]
+		[InlineData(DateTimeKind.Unspecified)]
+		public void UtcNow_WithCustomScopeAtDstRepeatedHourWithUtcOrUnspecifiedInput_ShouldReturnExpectedResult(DateTimeKind dateTimeKind)
 		{
 			var expectedResult = new DateTime(2022, 10, 30, 01, 30, 00, DateTimeKind.Local).ToUniversalTime().AddHours(2);
+			expectedResult = DateTime.SpecifyKind(expectedResult, dateTimeKind);
 
 			using var scope = new ClockScope(() => expectedResult);
 
 			var utcNow = ClockScope.Current.UtcNow;
 			var now = ClockScope.Current.Now;
+
+			// This test was written with with CE(S)T in mind, so it can only be performed on a system whose clock is using CET
+			if (!TimeZoneInfo.Local.IsAmbiguousTime(now) || !TimeZoneInfo.Local.GetAmbiguousTimeOffsets(now).SequenceEqual(new[] { TimeSpan.FromHours(1), TimeSpan.FromHours(2), }))
+				return;
 
 			Assert.Equal(expectedResult, utcNow);
 			Assert.Equal("2022-10-30T02:30:00.0000000+01:00", now.ToString("O"));
@@ -156,6 +184,10 @@ namespace Architect.AmbientContexts.Tests.Time
 
 			var utcNow = ClockScope.Current.UtcNow;
 			var now = ClockScope.Current.Now;
+
+			// This test was written with with CE(S)T in mind, so it can only be performed on a system whose clock is using CET
+			if (!TimeZoneInfo.Local.IsAmbiguousTime(now.AddHours(-1)) || !TimeZoneInfo.Local.GetAmbiguousTimeOffsets(now.AddHours(-1)).SequenceEqual(new[] { TimeSpan.FromHours(1), TimeSpan.FromHours(2), }))
+				return;
 
 			Assert.Equal(new DateTime(2022, 10, 30, 01, 30, 00, DateTimeKind.Local).ToUniversalTime().AddHours(3), utcNow); // Alas, an hour too far
 			Assert.Equal("2022-10-30T03:30:00.0000000+01:00", now.ToString("O")); // Alas, an hour too far

@@ -3,7 +3,7 @@ pr:
 - master
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: 'ubuntu-latest'
 
 steps:
 
@@ -16,7 +16,6 @@ steps:
     includeNugetOrg: true
     projects: |
       **/*.csproj
-      !**/*Tests*.csproj
 
 - task: DotNetCoreCLI@2
   displayName: 'DotNet Test'

@@ -38,11 +38,23 @@ namespace Architect.AmbientContexts
 		private Func<DateTime> UtcNowSource { get; }
 
 		/// <summary>
+		/// Establishes a clock pinned to the given <paramref name="utcDateTime"/> as the ambient one until the scope is disposed.
+		/// </summary>
+		/// <param name="utcDateTime">The pinned UTC datetime to register a clock for.
+		/// If a local time is used instead, it is interpreted correctly, but conversions may be lossy.
+		/// Times of an unspecified kind are assumed to be in UTC.</param>
+		public ClockScope(DateTime utcDateTime)
+			: this(() => utcDateTime, AmbientScopeOption.ForceCreateNew)
+		{
+			this.Activate();
+		}
+
+		/// <summary>
 		/// Establishes the given clock as the ambient one until the scope is disposed.
 		/// </summary>
 		/// <param name="utcNowSource">The clock to register, which produces the equivalent of <see cref="DateTime.UtcNow"/>, i.e. the UTC time.
 		/// If it produces local times instead, they are interpreted correctly, but conversions may be lossy.
-		/// Times of an unknown kind are assumed to be in UTC.</param>
+		/// Times of an unspecified kind are assumed to be in UTC.</param>
 		public ClockScope(Func<DateTime> utcNowSource)
 			: this(utcNowSource, AmbientScopeOption.ForceCreateNew)
 		{
