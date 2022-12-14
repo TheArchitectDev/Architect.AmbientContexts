@@ -2,7 +2,7 @@ trigger: none
 pr: none
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: 'linux-latest'
 
 steps:
 
