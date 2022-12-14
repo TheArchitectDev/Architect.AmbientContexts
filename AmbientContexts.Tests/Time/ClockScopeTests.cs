@@ -165,7 +165,7 @@ namespace Architect.AmbientContexts.Tests.Time
 			var now = ClockScope.Current.Now;
 
 			// This test was written with with CE(S)T in mind, so it can only be performed on a system whose clock is using CET
-			if (!TimeZoneInfo.Local.GetAmbiguousTimeOffsets(now).SequenceEqual(new[] { TimeSpan.FromHours(1), TimeSpan.FromHours(2), }))
+			if (!TimeZoneInfo.Local.IsAmbiguousTime(now) || !TimeZoneInfo.Local.GetAmbiguousTimeOffsets(now).SequenceEqual(new[] { TimeSpan.FromHours(1), TimeSpan.FromHours(2), }))
 				return;
 
 			Assert.Equal(expectedResult, utcNow);
@@ -186,7 +186,7 @@ namespace Architect.AmbientContexts.Tests.Time
 			var now = ClockScope.Current.Now;
 
 			// This test was written with with CE(S)T in mind, so it can only be performed on a system whose clock is using CET
-			if (!TimeZoneInfo.Local.GetAmbiguousTimeOffsets(now.AddHours(-1)).SequenceEqual(new[] { TimeSpan.FromHours(1), TimeSpan.FromHours(2), }))
+			if (!TimeZoneInfo.Local.IsAmbiguousTime(now.AddHours(-1)) || !TimeZoneInfo.Local.GetAmbiguousTimeOffsets(now.AddHours(-1)).SequenceEqual(new[] { TimeSpan.FromHours(1), TimeSpan.FromHours(2), }))
 				return;
 
 			Assert.Equal(new DateTime(2022, 10, 30, 01, 30, 00, DateTimeKind.Local).ToUniversalTime().AddHours(3), utcNow); // Alas, an hour too far
