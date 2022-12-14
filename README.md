@@ -76,7 +76,9 @@ public class Order
 		if (this.ShippingInfo is not null)
 			throw new InvalidOperationException($"{this} was already shipped.");
 
-		this.ShippingDateTime = timestamp; // Right now, obviously, but we want each order in the batch to store the same timestamp
+		// "Right now", obviously, but we want each order in the batch to store the same timestamp
+		this.ShippingDateTime = timestamp;
+
 		this.ShippingInfo = shippingInfo;
 		this.Approver = approver;
 	}
@@ -95,7 +97,9 @@ public class Order
 		if (this.ShippingInfo is not null)
 			throw new InvalidOperationException($"{this} was already shipped.");
 
-		this.ShippingDateTime = Clock.UtcNow; // This makes sense
+		// This makes sense
+		this.ShippingDateTime = Clock.UtcNow;
+
 		this.ShippingInfo = shippingInfo;
 		this.Approver = approver;
 	}
@@ -107,7 +111,8 @@ public class ShipAllOrdersUseCase
 	{
 		// Snip
 
-		// Take the clock's current time, and pin it until the scope is disposed, so that the entire batch works with this time
+		// Take the clock's current time, and pin it until the scope is disposed
+		// Now the entire batch works with this timestamp
 		using var clockScope = new ClockScope(Clock.UtcNow);
 
 		foreach (var order in orders)
