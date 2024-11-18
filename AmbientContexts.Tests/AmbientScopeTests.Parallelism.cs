@@ -104,23 +104,35 @@ namespace Architect.AmbientContexts.Tests
 			{
 				if (i % 2 == 0)
 				{
-					using var testInstance = new TestClass1();
+					var taskCompletionSource = new TaskCompletionSource();
 
 					// Will evaluate while testInstance and its ClockScope are still available
-					testInstance.AssertNowDelayedAsync(TestClass1.PinnedTime).GetAwaiter().GetResult();
+					using (var testInstance = new TestClass1())
+					{
+						testInstance.AssertNowDelayedAsync(TestClass1.PinnedTime, Task.CompletedTask).GetAwaiter()
+							.GetResult();
 
-					// Will evaluate after testInstance and its ClockScope have been disposed
-					tasks.Enqueue(testInstance.AssertNowDelayedAsync(utcNow));
+						// Will evaluate after testInstance and its ClockScope have been disposed
+						tasks.Enqueue(testInstance.AssertNowDelayedAsync(utcNow, taskCompletionSource.Task));
+					}
+
+					taskCompletionSource.SetResult();
 				}
 				else
 				{
-					using var testInstance = new TestClass2();
+					var taskCompletionSource = new TaskCompletionSource();
 
-					// Will evaluate while testInstance and its ClockScope are still available
-					testInstance.AssertNowDelayedAsync(TestClass2.PinnedTime).GetAwaiter().GetResult();
+					using (var testInstance = new TestClass2())
+					{
+						// Will evaluate while testInstance and its ClockScope are still available
+						testInstance.AssertNowDelayedAsync(TestClass2.PinnedTime, Task.CompletedTask).GetAwaiter()
+							.GetResult();
 
-					// Will evaluate after testInstance and its ClockScope have been disposed
-					tasks.Enqueue(testInstance.AssertNowDelayedAsync(utcNow));
+						// Will evaluate after testInstance and its ClockScope have been disposed
+						tasks.Enqueue(testInstance.AssertNowDelayedAsync(utcNow, taskCompletionSource.Task));
+					}
+
+					taskCompletionSource.SetResult();
 				}
 			});
 
@@ -137,9 +149,9 @@ namespace Architect.AmbientContexts.Tests
 				this.Scope.Dispose();
 			}
 
-			public async Task AssertNowDelayedAsync(DateTime expectedValue)
+			public async Task AssertNowDelayedAsync(DateTime expectedValue, Task delay)
 			{
-				await Task.Delay(TimeSpan.FromMilliseconds(1));
+				await delay;
 				var now = Clock.UtcNow;
 				Assert.Equal(expectedValue, now);
 			}
@@ -155,9 +167,9 @@ namespace Architect.AmbientContexts.Tests
 				this.Scope.Dispose();
 			}
 
-			public async Task AssertNowDelayedAsync(DateTime expectedValue)
+			public async Task AssertNowDelayedAsync(DateTime expectedValue, Task delay)
 			{
-				await Task.Delay(TimeSpan.FromMilliseconds(1));
+				await delay;
 				var now = Clock.UtcNow;
 				Assert.Equal(expectedValue, now);
 			}
