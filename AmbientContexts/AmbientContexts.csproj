@@ -7,11 +7,11 @@
 		<Nullable>Enable</Nullable>
 		<LangVersion>10</LangVersion>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
-		<IsTrimmable>True</IsTrimmable>
+		<IsTrimmable Condition="$([MSBuild]::IsTargetFrameworkCompatible('$()', 'netcoreapp3.0'))">True</IsTrimmable>
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<VersionPrefix>2.0.0</VersionPrefix>
+		<VersionPrefix>2.0.1</VersionPrefix>
 		<Description>
 Provides the basis for implementing the Ambient Context pattern. Includes a Clock implementation based on it.
 
@@ -24,6 +24,9 @@ An example from .NET is System.Transactions.TransactionScope. Any code (such as 
 https://github.com/TheArchitectDev/Architect.AmbientContexts
 
 Release notes:
+
+2.0.1:
+- Updated dependencies to the latest versions and removed some unused dependencies.
 
 2.0.0:
 - BREAKING: ClockScope no longer has a configurable default scope. (See also next item).
@@ -60,13 +63,8 @@ Release notes:
 		</None>
 	</ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="3.1.0" />
-	</ItemGroup>
-
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
+	  <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
 	</ItemGroup>
 
 </Project>
