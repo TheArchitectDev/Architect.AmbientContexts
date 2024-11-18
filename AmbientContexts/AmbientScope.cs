@@ -233,7 +233,7 @@ namespace Architect.AmbientContexts
 		/// <em>It is recommended to call this method from a static initializer.</em>
 		/// </para>
 		/// <para>
-		/// Manually configured defaults should be avoided, since such configurations tend to be bound a particular DI container or <see cref="Microsoft.Extensions.Hosting.IHost"/>.
+		/// Manually configured defaults should be avoided, since such configurations tend to be bound to a particular DI container or host.
 		/// Particularly during test runs, distinguishing between different configured defaults is infeasible.
 		/// </para>
 		/// </summary>
